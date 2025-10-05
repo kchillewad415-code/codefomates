@@ -1,0 +1,22 @@
+
+<svg width="500" height="500" viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .text { font-family: Arial, sans-serif; font-weight: bold; }
+    .title { font-size: 32px; }
+    .slogan { font-size: 18px; }
+    .circle-text { font-size: 18px; font-weight: normal; }
+  </style>
+  <circle cx="250" cy="250" r="190" fill="none" stroke="#FFD700" stroke-dasharray="1, 8" stroke-width="2"/>
+  <g fill="#FFD700" text-anchor="middle">
+    <text x="250" y="220" class="text title">👓</text>
+    <text x="250" y="260" class="text title">CODEMATE</text>
+    <path id="curve" fill="transparent" d="
+      M 100 350
+      A 150 150 0 0 0 400 350" />
+    <text class="circle-text">
+      <textPath href="#curve" startOffset="50%" text-anchor="middle">
+        Build. Learn. Solve — Together
+      </textPath>
+    </text>
+  </g>
+</svg>

@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run React app in watch mode",
+			"type": "shell",
+			"command": "npm start",
+			"isBackground": true,
+			"group": "build"
+		}
+	]
+}

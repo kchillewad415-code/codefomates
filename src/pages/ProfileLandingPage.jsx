@@ -1,0 +1,178 @@
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import API from "../api";
+
+function SkillList({ skills }) {
+  if (!skills || skills.length === 0) return <div className="text-gray-500">No skills Added</div>;
+  return (
+    <div className="mb-4">
+      <h3 className="text-lg font-medium mb-2">Your Skills:</h3>
+      <div className="flex flex-wrap gap-2">
+        {skills.map((skill, idx) => (
+          <span
+            key={idx}
+            className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-sm flex items-center gap-1"
+          >
+            {skill}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+// End of SkillList
+}
+
+function IssueList({ issues, markClosed }) {
+  if (!issues || issues.length === 0) return <p className="text-gray-500 text-center">No issue logged till</p>;
+  return issues.map((issue) => (
+    <div
+      key={issue._id}
+      className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between"
+    >
+      <div>
+        <h3 className="text-xl font-semibold text-gray-800">{issue.title}</h3>
+        <p className="text-sm text-gray-600">Language: {issue.language} · Urgency: {issue.urgency}</p>
+      </div>
+      <div className="flex gap-2 mt-4 sm:mt-0">
+  <div style={{ cursor: 'pointer' }} onClick={() => markClosed(issue, !issue.isOpen)} className="bg-teal-700 text-white px-4 py-2 rounded-xl hover:bg-teal-800">
+          {issue.isOpen ? "Close Issue" : "ReOpen"}
+        </div>
+        <Link to={`/dashboard/livesession/${issue._id}`} className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700">
+          Session
+        </Link>
+      </div>
+    </div>
+  ));
+}
+
+export default function ProfileLandingPage({ loginUser }) {
+  // Redirect to login if not logged in
+  const [issues, setIssues] = useState([]);
+  const [user, setUser] = useState();
+  const [loading, setLoading] = useState(true);
+  // Badge icon/description mapping
+  const badgeMap = {
+    "Top Solver": { icon: "🏆", description: "Solved 10+ issues" },
+    "Quick Responder": { icon: "⚡", description: "Responded within 1 hour" },
+    // Add more badge mappings as needed
+  };
+
+  useEffect(() => {
+    async function fetchAll() {
+      if (!loginUser || !loginUser._id) {
+       setLoading(false); 
+        return;
+      }
+      setLoading(true);
+      try {
+        const [issuesRes, usersRes] = await Promise.all([
+          API.get("/issues"),
+          API.get("/users")
+        ]);
+        setIssues(issuesRes.data.filter(item => item.userid === loginUser._id));
+        setUser(usersRes.data.find(item => item._id === loginUser._id));
+      } catch (err) {
+        console.log(err);
+      }
+      setLoading(false);
+    }
+    fetchAll();
+  }, [loginUser && loginUser._id]);
+  React.useEffect(() => {
+    if (!loading && (!loginUser || !loginUser._id)) {
+      window.location.replace('/login');
+    }
+  }, [loading, loginUser]);
+  const updateIssue = async (id, updateIssue) => {
+    try {
+      await API.put(`/issues/${id}`, updateIssue);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const markClosed = (issue, value) => {
+    const updateIssues = { ...issue, isOpen: value };
+    updateIssue(updateIssues._id, updateIssues);
+    setIssues(prevIssues => prevIssues.map(i => i._id === updateIssues._id ? { ...i, isOpen: value } : i));
+  };
+
+  return (
+  <div className="bg-gray-100 p-6" style={{ minHeight: 'calc(100vh - 300px)' }}>
+      <div className="max-w-4xl mx-auto">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center h-40">
+            <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+            </svg>
+            <span className="mt-2 text-blue-600">Loading profile...</span>
+          </div>
+        ) : (
+          <>
+            <h2 className="text-3xl font-bold text-blue-600 mb-6">Solver Dashboard</h2>
+
+            <div className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 mb-6">
+              <Link to="/profile/editProfile">Edit Profile</Link>
+            </div>
+
+            <div className="grid gap-4">
+              {loginUser ? (
+                <div className="grid gap-4">
+                  {/* Bio/About Section */}
+                  <div className="bg-white rounded-xl shadow p-4 mb-2">
+                    <h3 className="text-lg font-bold text-blue-700 mb-2">About</h3>
+                    <p className="text-gray-700">{user?.bio || "No bio added yet."}</p>
+                  </div>
+                  {/* Contact Information */}
+                  <div className="bg-white rounded-xl shadow p-4 mb-2">
+                    <h3 className="text-lg font-bold text-blue-700 mb-2">Contact Info</h3>
+                    <p className="text-gray-700">Email: {user?.email}</p>
+                    {user?.linkedin && <p className="text-gray-700">LinkedIn: <a href={user.linkedin} className="text-blue-600 underline" target="_blank" rel="noopener noreferrer">{user.linkedin}</a></p>}
+                    {user?.github && <p className="text-gray-700">GitHub: <a href={user.github} className="text-blue-600 underline" target="_blank" rel="noopener noreferrer">{user.github}</a></p>}
+                  </div>
+                  {/* Issue Statistics */}
+                  <div className="bg-white rounded-xl shadow p-4 mb-2 flex gap-8">
+                    <div>
+                      <h3 className="text-lg font-bold text-blue-700 mb-2">Issue Stats</h3>
+                      <p className="text-gray-700">Total: {issues.length}</p>
+                      <p className="text-gray-700">Open: {issues.filter(i => i.isOpen).length}</p>
+                      <p className="text-gray-700">Closed: {issues.filter(i => !i.isOpen).length}</p>
+                    </div>
+                    {/* Badges/Achievements */}
+                    <div>
+                      <h3 className="text-lg font-bold text-blue-700 mb-2">Badges</h3>
+                      <div className="flex gap-2 flex-wrap">
+                        {(user?.badges && user.badges.length > 0) ? (
+                          user.badges.map((badge, idx) => {
+                            const map = badgeMap[badge] || {};
+                            return (
+                              <div key={badge + idx} className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm flex items-center gap-2" title={map.description || badge}>
+                                {map.icon && <span>{map.icon}</span>} {badge}
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <span className="text-gray-500">No badges yet</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <SkillList skills={user && user.skills} />
+                  <IssueList issues={issues} markClosed={markClosed} />
+                </div>
+              ) : (
+                <div>
+                  you are not logged in please login first
+                  <div className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700">
+                    <Link to="/login">Login / Sign Up</Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
