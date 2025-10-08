@@ -15,6 +15,7 @@ export default function AuthPage({ onLoginUser }) {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotStatus, setForgotStatus] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [duplicateEmail, setDuplicateEmail] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -39,6 +40,13 @@ export default function AuthPage({ onLoginUser }) {
   const newUser = async () => {
     const checkUser = users && users.filter(item => item.username === form.username);
     if (checkUser && checkUser.length === 0) {
+      setErrormsg(false);
+      const checkEmail = users && users.filter(item => item.email === form.email);
+      if (checkEmail && checkEmail.length > 0) {
+        setDuplicateEmail(true);
+        return;
+      }
+      setDuplicateEmail(false);
       try {
         await API.post("/users", form);
       } catch (err) {
@@ -103,6 +111,9 @@ export default function AuthPage({ onLoginUser }) {
       setPasswordError("");
       newUser(form);
     } else {
+      setErrormsg(false);
+      setWrongpassword(false);
+      setNouser(false);
       checkLogin();
     }
   };
@@ -135,8 +146,8 @@ export default function AuthPage({ onLoginUser }) {
             <h2 className="text-2xl font-bold text-center mb-4 text-blue-600">
               {isSignup ? "Sign Up" : "Log In"}
             </h2>
-            {wrongpassword ? <span>wrong email or password</span> : null}
-            {nouser ? <span>No user found check again or signup</span> : null}
+            {wrongpassword ? <span className="text-red-600">wrong email or password</span> : null}
+            {nouser ? <span className="text-red-600">No user found check again or signup</span> : null}
             {!showForgot ? (
               <>
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -151,7 +162,7 @@ export default function AuthPage({ onLoginUser }) {
                         className="w-full px-4 py-2 border rounded-xl"
                         required
                       />
-                      {errormsg ? <span>username already Exist try another</span> : null}
+                      {errormsg ? <span className="text-red-600">username already Exist try another</span> : null}
                     </>
                   )}
                   <input
@@ -163,6 +174,7 @@ export default function AuthPage({ onLoginUser }) {
                     className="w-full px-4 py-2 border rounded-xl"
                     required
                   />
+                  {duplicateEmail ? <span className="text-red-600">Email already in use. Please use a different email.</span> : null}
                   <div className="relative">
                     <input
                       type={showPassword ? "text" : "password"}
@@ -186,8 +198,8 @@ export default function AuthPage({ onLoginUser }) {
                   )}
                   {isSignup && (
                     <ul className="text-xs text-gray-500 mt-1 list-disc pl-5">
-                      <li>Password must be at least 8 characters</li>
-                      <li>Include uppercase, lowercase, number, and special character</li>
+                      <li className="text-red-600">Password must be at least 8 characters</li>
+                      <li className="text-red-600">Include uppercase, lowercase, number, and special character</li>
                     </ul>
                   )}
                   <button
@@ -236,7 +248,7 @@ export default function AuthPage({ onLoginUser }) {
             <p className="text-sm text-center mt-4 text-gray-600">
               {isSignup ? "Already have an account?" : "Don't have an account?"} {" "}
               <button
-                onClick={() => setIsSignup(!isSignup)}
+                onClick={() => {setIsSignup(!isSignup); setErrormsg(false); setWrongpassword(false); setNouser(false); setForgotStatus(""); setShowForgot(false); setDuplicateEmail(false);}}
                 className="text-blue-600 hover:underline"
               >
                 {isSignup ? "Log In" : "Sign Up"}
