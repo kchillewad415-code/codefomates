@@ -27,24 +27,15 @@ export default function ProfilePage() {
     }
   }, [loading, user]);
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUser = () => {
       setLoading(true);
-      API.get("/users")
-        .then(res=>{
-          const resUser = res.data.find(item=>item.userid===user.id);
-          setUser(resUser);
-          if (resUser) {
-            setBio(resUser.bio || "");
-            setLinkedin(resUser.linkedin || "");
-            setGithub(resUser.github || "");
-            setBadges(resUser.badges || []);
+          if (user) {
+            setBio(user.bio || "");
+            setLinkedin(user.linkedin || "");
+            setGithub(user.github || "");
+            setBadges(user.badges || []);
           }
           setLoading(false);
-        })
-        .catch(err=>{
-          setLoading(false);
-          console.log(err);
-        });
     };
     fetchUser();
   }, []);
@@ -67,6 +58,7 @@ export default function ProfilePage() {
     // Merge old and new skills into a flat array
     const oldSkills = Array.isArray(user.skills) ? user.skills : [];
     const allSkills = Array.from(new Set([...oldSkills, ...skills]));
+    console.log("user", user);
     const updateLoginUser = {
       ...user,
       skills: allSkills,
@@ -75,8 +67,11 @@ export default function ProfilePage() {
       github,
       badges,
     };
+
+    console.log("updateLoginUser", updateLoginUser);
     updateUser(user._id, updateLoginUser);
     setUser(updateLoginUser);
+    sessionStorage.removeItem('loginProfile');
     sessionStorage.setItem('loginProfile', JSON.stringify(updateLoginUser));
     alert("user profile updated");
   };
