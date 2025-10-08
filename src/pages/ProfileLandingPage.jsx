@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import API from "../api";
 import axios from "axios";
-import { set } from "mongoose";
 const API_URL = process.env.REACT_APP_API_BASE_URL;
 function SkillList({ skills }) {
   if (!skills || skills.length === 0) return <div className="text-gray-500">No skills Added</div>;
