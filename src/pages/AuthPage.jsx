@@ -111,7 +111,7 @@ export default function AuthPage({ onLoginUser }) {
     e.preventDefault();
     setForgotStatus("Sending...");
     try {
-      await API.post("/forgot-password", { email: forgotEmail });
+      await API.post("https://codeformates-backend.vercel.app/forgot-password", { email: forgotEmail });
       setForgotStatus("Password reset link sent to your email.");
     } catch (err) {
       setForgotStatus("Failed to send reset link. Check your email.");
