@@ -185,19 +185,27 @@ export default function LiveSession({ user }) {
   return (
     <div className="max-w-7xl mx-auto px-4 flex flex-col lg:flex-row gap-6">
       {/* Chat Section */}
-      <div className="flex-1 bg-white rounded-xl shadow p-4 flex flex-col"
-           style={{ height: 'calc(100vh - 265px)', maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
+        <div className="flex-1 bg-white rounded-xl shadow p-4 flex flex-col" style={{ height: 'calc(100vh - 265px)', maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
         <div className="flex items-center justify-between mb-2 text-gray-700">
-          <span className="flex items-center gap-2"><MessageSquare className="w-5 h-5" /> Chat</span>
+          <span className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5" /> Chat
+          </span>
+          {/* Small video icon at the top right of chat */}
           <button
             className="p-1 md:hidden rounded-full bg-blue-100 hover:bg-blue-200"
-            onClick={() => { setShowVideoSection(true); setTimeout(() => videoSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }}
+            onClick={() => {
+              setShowVideoSection(true);
+              setTimeout(() => {
+                if (videoSectionRef.current) {
+                  videoSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }, 100); // Wait for section to appear
+            }}
             aria-label="Show Video Section"
           >
             <Video className="w-5 h-5 text-blue-600" />
           </button>
         </div>
-
         <div className="flex-1 overflow-y-auto space-y-2 mb-4 h-full">
           {loading ? (
             <div className="flex items-center justify-center h-full">
@@ -212,11 +220,20 @@ export default function LiveSession({ user }) {
               {messages.map((msg) => {
                 const isOwn = msg.sender === username;
                 return (
-                  <div key={msg.id} className={`p-2 rounded-xl max-w-xs text-sm flex flex-col ${isOwn ? "bg-blue-100 items-end" : "bg-gray-200 items-start"}`} 
-                       style={{ alignSelf: isOwn ? 'flex-end' : 'flex-start', textAlign: 'left' }}>
-                    <div style={{ display: 'flex', gap: '6px' }}><strong>{msg.sender}</strong></div>
-                    <div>{msg.text}</div>
-                    <span className="block text-xs text-gray-500">{msg.time ? new Date(msg.time).toLocaleTimeString() : ''}</span>
+                  <div
+                    key={msg.id}
+                    className={`p-2 rounded-xl max-w-xs text-sm flex flex-col ${
+                      isOwn ? "bg-blue-100 items-end" : "bg-gray-200 items-start"
+                    }`}
+                    style={{ alignSelf: isOwn ? 'flex-end' : 'flex-start', marginLeft: isOwn ? 'auto' : 0, marginRight: isOwn ? 0 : 'auto', textAlign: 'left' }}
+                  >
+                    <div style={{ textAlign: 'left', width: '100%', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <strong>{msg.sender}</strong>
+                    </div>
+                    <div style={{ textAlign: 'left', width: '100%' }}>{msg.text}</div>
+                    <span className="block text-xs text-gray-500">
+                      {msg.time ? new Date(msg.time).toLocaleTimeString() : ''}
+                    </span>
                   </div>
                 );
               })}
@@ -224,10 +241,17 @@ export default function LiveSession({ user }) {
             </>
           )}
         </div>
-
         <form onSubmit={sendMessage} className="flex gap-2">
-          <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type a message..." className="flex-1 px-3 py-2 border rounded-xl"/>
-          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-xl">Send</button>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type a message..."
+            className="flex-1 px-3 py-2 border rounded-xl"
+          />
+          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-xl">
+            Send
+          </button>
         </form>
       </div>
 
