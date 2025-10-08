@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-const API_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
-
 export default function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', message: '' });
   const [status, setStatus] = useState('');
@@ -23,7 +21,7 @@ export default function ContactPage() {
     e.preventDefault();
     setStatus('Sending...');
     try {
-      const res = await fetch(`${API_URL}/contact`, {
+      const res = await fetch(`https://codeformates-backend.vercel.app/contact`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
