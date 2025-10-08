@@ -158,6 +158,8 @@ export default function ProfileLandingPage({ loginUser }) {
   const [loading, setLoading] = useState(true);
   const [allIssues, setAllIssues] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const storedUserProfile = JSON.parse(sessionStorage.getItem('loginProfile'));
+  const resolved = issues.filter(issue => issue.resolvedBy===storedUserProfile.username);
     
   // Badge icon/description mapping
   const badgeMap = {
@@ -259,6 +261,7 @@ export default function ProfileLandingPage({ loginUser }) {
                       <p className="text-gray-700">Total: {issues.length}</p>
                       <p className="text-gray-700">Open: {issues.filter(i => i.isOpen).length}</p>
                       <p className="text-gray-700">Closed: {issues.filter(i => !i.isOpen).length}</p>
+                      <p className="text-gray-700">Resolved:{resolved.length}</p>
                     </div>
                     {/* Badges/Achievements */}
                     <div>
