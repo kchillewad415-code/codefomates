@@ -29,6 +29,16 @@ export default function LiveSession({ user }) {
   const remoteVideoRef = useRef(null);
   const screenShareVideoRef = useRef(null);
 
+
+
+  const RTC_CONFIG = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" },
+    // If you have a TURN server, add it here:
+    // { urls: "turn:your.turn.server:3478", username: "user", credential: "pass" }
+  ]
+};
+
   // Scroll to bottom when messages update
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -75,7 +85,7 @@ export default function LiveSession({ user }) {
       await peerRef.current.setRemoteDescription(offer);
       const answer = await peerRef.current.createAnswer();
       await peerRef.current.setLocalDescription(answer);
-      socketRef.current.emit('answer', answer);
+      socketRef.current.emit('answer', { roomId, answer });
     });
 
     socketRef.current.on('answer', async (answer) => {
@@ -101,37 +111,101 @@ export default function LiveSession({ user }) {
     setInput("");
   };
 
+  const peer = new RTCPeerConnection({
+  iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+});
+
   // Initialize peer connection
   const initPeerConnection = (stream) => {
-    peerRef.current = new RTCPeerConnection();
-    stream.getTracks().forEach(track => peerRef.current.addTrack(track, stream));
+    // reuse existing pc if any (close it)
+  if (peerRef.current) {
+    try { peerRef.current.close(); } catch(e){}
+    peerRef.current = null;
+  }
 
-    peerRef.current.ontrack = (event) => {
-      if (remoteVideoRef.current) remoteVideoRef.current.srcObject = event.streams[0];
-    };
+  const pc = new RTCPeerConnection(RTC_CONFIG);
+  peerRef.current = pc;
 
-    peerRef.current.onicecandidate = (event) => {
-      if (event.candidate) socketRef.current.emit('ice-candidate', event.candidate);
-    };
+  // Add existing tracks (camera or screen) to connection
+  if (stream) {
+    stream.getTracks().forEach(track => pc.addTrack(track, stream));
+  }
+
+  // When remote track arrives, attach to remote video
+  pc.ontrack = (event) => {
+    // event.streams[0] is usually the stream that contains the incoming track(s)
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = event.streams[0];
+      // ensure autoplay
+      remoteVideoRef.current.onloadedmetadata = () => remoteVideoRef.current.play().catch(()=>{});
+    }
   };
 
-  // Start camera
-  const startVideo = async (isCaller = true) => {
+  // Send ICE candidates through socket
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      socketRef.current.emit('ice-candidate', { roomId, candidate: event.candidate });
+    }
+  };
+   // Handle negotiationneeded (automatic when tracks change)
+  pc.onnegotiationneeded = async () => {
+    // create offer and send it through socket
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      setIsVideoStarted(true);
-      setCameraStream(stream);
-      if (localVideoRef.current) localVideoRef.current.srcObject = stream;
-
-      initPeerConnection(stream);
-
-      if (isCaller) {
-        const offer = await peerRef.current.createOffer();
-        await peerRef.current.setLocalDescription(offer);
-        socketRef.current.emit('offer', offer);
-      }
-    } catch (err) { console.error(err); }
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      socketRef.current.emit('offer', { roomId, offer: pc.localDescription });
+    } catch (err) {
+      console.error("Negotiation error:", err);
+    }
   };
+
+  return pc;
+  };
+// Helper: create and send offer (used when caller starts)
+const createAndSendOffer = async () => {
+  if (!peerRef.current) return;
+  try {
+    const offer = await peerRef.current.createOffer();
+    await peerRef.current.setLocalDescription(offer);
+    socketRef.current.emit('offer', { roomId, offer });
+  } catch (err) {
+    console.error("Offer error:", err);
+  }
+};
+  // Start camera
+// Start camera (replaces your startVideo)
+const startVideo = async (isCaller = true) => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    setIsVideoStarted(true);
+    setCameraStream(stream);
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = stream;
+      localVideoRef.current.onloadedmetadata = () => localVideoRef.current.play().catch(()=>{});
+    }
+
+    // If we have a peer already, we want to replace video sender; otherwise create pc
+    if (!peerRef.current) {
+      initPeerConnection(stream); // will add tracks and set negotiationneeded
+      if (isCaller) {
+        // create offer manually for first time
+        await createAndSendOffer();
+      }
+    } else {
+      // Replace existing video sender's track (preferred) to avoid extra streams
+      const videoTrack = stream.getVideoTracks()[0];
+      const sender = peerRef.current.getSenders().find(s => s.track && s.track.kind === "video");
+      if (sender && videoTrack) {
+        await sender.replaceTrack(videoTrack);
+      } else {
+        // fallback: add track and let onnegotiationneeded handle offer
+        stream.getTracks().forEach(track => peerRef.current.addTrack(track, stream));
+      }
+    }
+  } catch (err) {
+    console.error("startVideo error:", err);
+  }
+};
 
   // Stop camera
   const endVideo = () => {
@@ -151,36 +225,82 @@ export default function LiveSession({ user }) {
   };
 
   // Share screen
-  const shareScreen = async () => {
-    try {
-      const sStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-      setIsScreenSharing(true);
-      setScreenStream(sStream);
-      if (screenShareVideoRef.current) screenShareVideoRef.current.srcObject = sStream;
+const shareScreen = async () => {
+  try {
+    // get display stream (video only)
+    const sStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+    setIsScreenSharing(true);
+    setScreenStream(sStream);
+    if (screenShareVideoRef.current) {
+      screenShareVideoRef.current.srcObject = sStream;
+      screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(()=>{});
+    }
 
-      if (peerRef.current) sStream.getTracks().forEach(track => peerRef.current.addTrack(track, sStream));
-      sStream.getVideoTracks()[0].onended = stopScreenShare;
-    } catch (err) { console.error(err); setIsScreenSharing(false); }
-  };
+    // If we have a peer, prefer replaceTrack on the video sender
+    if (!peerRef.current) {
+      // if no peer, init with screen stream and create offer
+      initPeerConnection(sStream);
+      await createAndSendOffer();
+    } else {
+      const screenTrack = sStream.getVideoTracks()[0];
+      const sender = peerRef.current.getSenders().find(s => s.track && s.track.kind === "video");
+      if (sender && screenTrack) {
+        await sender.replaceTrack(screenTrack);
+        // replaceTrack doesn't require new offer in modern browsers but some peers need renegotiation.
+        // If remote does not get it, trigger negotiation by creating offer:
+        // await createAndSendOffer();
+      } else {
+        // fallback: add track and rely on negotiationneeded
+        sStream.getTracks().forEach(track => peerRef.current.addTrack(track, sStream));
+      }
+    }
+
+    // When user stops sharing from browser UI:
+    sStream.getVideoTracks()[0].onended = () => stopScreenShare();
+  } catch (err) {
+    console.error("shareScreen error:", err);
+    setIsScreenSharing(false);
+  }
+};
 
   // Stop screen share
-  const stopScreenShare = () => {
-    setIsScreenSharing(false);
-    if (screenShareVideoRef.current?.srcObject) {
-      screenShareVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
-      screenShareVideoRef.current.srcObject = null;
-    }
-    if (screenStream) {
-      if (peerRef.current) {
-        const senders = peerRef.current.getSenders();
-        senders.forEach(sender => {
-          if (screenStream.getTracks().includes(sender.track)) peerRef.current.removeTrack(sender);
-        });
+// Stop screen share (replaces your stopScreenShare)
+const stopScreenShare = async () => {
+  setIsScreenSharing(false);
+  if (screenShareVideoRef.current?.srcObject) {
+    screenShareVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
+    screenShareVideoRef.current.srcObject = null;
+  }
+
+  if (screenStream) {
+    // If peer exists, restore camera video track back into sender
+    const videoSender = peerRef.current?.getSenders().find(s => s.track && s.track.kind === "video");
+    if (videoSender) {
+      // if we still have cameraStream, prefer to set camera track back
+      const camTrack = cameraStream?.getVideoTracks()[0];
+      if (camTrack) {
+        try {
+          await videoSender.replaceTrack(camTrack);
+        } catch (err) {
+          // fallback: remove screen senders and add camera track
+          console.error("replaceTrack fallback error:", err);
+          // remove any senders that are from screenStream
+          const senders = peerRef.current.getSenders();
+          senders.forEach(s => {
+            if (s.track && screenStream.getTracks().includes(s.track)) {
+              try { peerRef.current.removeTrack(s); } catch(e) {}
+            }
+          });
+          // add camera track back (negotiationneeded will fire)
+          if (camTrack) peerRef.current.addTrack(camTrack, cameraStream);
+        }
       }
-      screenStream.getTracks().forEach(track => track.stop());
-      setScreenStream(null);
     }
-  };
+
+    screenStream.getTracks().forEach(track => track.stop());
+    setScreenStream(null);
+  }
+};
 
   return (
     <div className="max-w-7xl mx-auto px-4 flex flex-col lg:flex-row gap-6">
@@ -231,7 +351,7 @@ export default function LiveSession({ user }) {
                       <strong>{msg.sender}</strong>
                     </div>
                     <div style={{ textAlign: 'left', width: '100%' }}>{msg.text}</div>
-                    <span className="block text-xs text-gray-500">
+                    <span className="block w-full text-right text-xs text-gray-500">
                       {msg.time ? new Date(msg.time).toLocaleTimeString() : ''}
                     </span>
                   </div>
