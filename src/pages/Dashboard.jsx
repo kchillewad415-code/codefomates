@@ -7,6 +7,8 @@ export default function Dashboard() {
   const [filter, setFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [showSkillFilter, setShowSkillFilter] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(1); // You can adjust as needed
   const techOptions = [
     "JavaScript", "Python", "Java", "C++", "React", "Node.js", "TypeScript", "HTML", "CSS", "SQL", "Go", "Ruby", "PHP", "Swift", "Kotlin", "Rust", "Dart", "Angular", "Vue.js", ".NET", "Spring", "Express", "MongoDB", "Firebase", "GraphQL"
   ];
@@ -46,10 +48,43 @@ export default function Dashboard() {
     filteredIssues = filteredIssues.filter(i => userSkills.includes(i.language.toLowerCase()));
   }
 
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredIssues.length / itemsPerPage);
+  const indexOfLastItem = currentPage * itemsPerPage;
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+  const currentItems = filteredIssues.slice(indexOfFirstItem, indexOfLastItem);
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+  const handleNext = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+  const handlePrev = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+    const handleChange = (e) => {
+    setItemsPerPage(e.target.value);
+  };
+
   return (
   <div className="bg-gray-100 p-6" style={{ minHeight: 'calc(100vh - 300px)' }}>
       <div className="max-w-4xl mx-auto">
-        <h2 className="text-3xl font-bold text-blue-600 mb-6">Solver Dashboard</h2>
+        <h2 className="text-3xl font-bold text-blue-600 mb-6 relative">Solver Dashboard
+
+              <div className="text-sm text-gray-600 mt-2 md:absolute md:top-0 md:right-0">
+                <label htmlFor="paginationCount">Items per page :  </label>
+                <select id="paginationCount" value={itemsPerPage} onChange={handleChange} style={{borderRadius: '20px', padding: '5px', marginLeft: '5px'}}>
+                  <option key="1" value="1">1</option>
+                  <option key="2" value="5">5</option>
+                  <option key="3" value="10">10</option>
+                  <option key="4" value="20">20</option>
+                </select>
+            </div>
+
+
+        </h2>
 
         <div className="mb-4 flex flex-col gap-2">
           <div className="flex flex-col sm:flex-row gap-2">
@@ -90,9 +125,10 @@ export default function Dashboard() {
             <span className="mt-2 text-blue-600">Loading issues...</span>
           </div>
         ) : (
+          <>
           <div className="grid gap-4">
-            {filteredIssues.length > 0 ? (
-              filteredIssues.map((issue) => (
+            {currentItems.length > 0 ? (
+              currentItems.map((issue) => (
                 <div
                   key={issue._id}
                   className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between"
@@ -114,6 +150,51 @@ export default function Dashboard() {
               <p className="text-gray-500 text-center">No issues found</p>
             )}
           </div>
+            { totalPages > 1 &&
+            <div className="flex justify-center items-center space-x-2 mt-6">
+        <button
+          onClick={handlePrev}
+          disabled={currentPage === 1}
+          className={`px-3 py-1 rounded ${
+            currentPage === 1
+              ? "bg-gray-300 cursor-not-allowed"
+              : "bg-blue-500 hover:bg-blue-600 text-white"
+          }`}
+        >
+          Prev
+        </button>
+          {[...Array(totalPages)].map((_, index) => {
+          const page = index + 1;
+          return (
+            <button
+              key={page}
+              onClick={() => handlePageChange(page)}
+              className={`px-3 py-1 rounded ${
+                currentPage === page
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-200 hover:bg-gray-300"
+              }`}
+            >
+              {page}
+            </button>
+            
+          );
+        })}
+        <button
+          onClick={handleNext}
+          disabled={currentPage === totalPages}
+          className={`px-3 py-1 rounded ${
+            currentPage === totalPages
+              ? "bg-gray-300 cursor-not-allowed"
+              : "bg-blue-500 hover:bg-blue-600 text-white"
+          }`}
+        >
+          Next
+        </button>
+        </div>
+      } 
+
+</>
         )}
       </div>
     </div>
