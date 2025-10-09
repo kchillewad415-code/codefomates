@@ -8,7 +8,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [showSkillFilter, setShowSkillFilter] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(1); // You can adjust as needed
+  const [itemsPerPage, setItemsPerPage] = useState(10); // You can adjust as needed
   const techOptions = [
     "JavaScript", "Python", "Java", "C++", "React", "Node.js", "TypeScript", "HTML", "CSS", "SQL", "Go", "Ruby", "PHP", "Swift", "Kotlin", "Rust", "Dart", "Angular", "Vue.js", ".NET", "Spring", "Express", "MongoDB", "Firebase", "GraphQL"
   ];
@@ -48,25 +48,80 @@ export default function Dashboard() {
     filteredIssues = filteredIssues.filter(i => userSkills.includes(i.language.toLowerCase()));
   }
 
+const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+// 1️⃣ On mount → Read filters + pagination from URL
+useEffect(() => {
+  const queryParams = new URLSearchParams(window.location.search);
+
+  const filterParam = queryParams.get("filter") || "";
+  const selectedTechParam = queryParams.get("selectedTech") || "";
+  const showSkillFilterParam = queryParams.get("showSkillFilter") === "true";
+  const pageParam = parseInt(queryParams.get("page")) || 1;
+  const limitParam = parseInt(queryParams.get("limit")) || itemsPerPage; // default itemsPerPage
+
+  setFilter(filterParam);
+  setSelectedTech(selectedTechParam);
+  setShowSkillFilter(showSkillFilterParam);
+  setCurrentPage(pageParam);
+  setItemsPerPage(limitParam);
+
+  setIsInitialLoad(false);
+}, []);
+
+// 2️⃣ On filters or pagination change → Update URL (skip first render)
+useEffect(() => {
+  if (isInitialLoad) return; // Prevent wiping URL on first render
+
+  const queryParams = new URLSearchParams();
+
+  // Filters
+  if (filter) queryParams.append("filter", filter);
+  if (selectedTech) queryParams.append("selectedTech", selectedTech);
+  if (showSkillFilter) queryParams.append("showSkillFilter", showSkillFilter);
+
+  // Pagination
+  if (currentPage > 1) queryParams.append("page", currentPage);
+  if (itemsPerPage) queryParams.append("limit", itemsPerPage); // skip default to keep URL clean
+
+  const newUrl = `${window.location.pathname}${queryParams.toString() ? "?" + queryParams.toString() : ""}`;
+  window.history.replaceState(null, "", newUrl);
+}, [filter, selectedTech, showSkillFilter, currentPage, itemsPerPage, isInitialLoad]);
+
+
+
+
+
+
+
+
 
   // Pagination logic
   const totalPages = Math.ceil(filteredIssues.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredIssues.slice(indexOfFirstItem, indexOfLastItem);
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
-  const handleNext = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
-  };
-  const handlePrev = () => {
-    if (currentPage > 1) setCurrentPage(currentPage - 1);
-  };
+const handlePageChange = (page) => {
+  setCurrentPage(page);
+  window.scrollTo({ top: 0, behavior: "smooth" }); // Optional — scroll to top on page change
+};
+const handleNext = () => {
+  if (currentPage < totalPages) handlePageChange(currentPage + 1);
+};
+const handlePrev = () => {
+  if (currentPage > 1) handlePageChange(currentPage - 1);
+};
+const handleChange = (e) => {
+  const value = parseInt(e.target.value, 10);
+  setItemsPerPage(value);
+  setCurrentPage(1); // reset to first page when per-page changes
+};
 
-    const handleChange = (e) => {
-    setItemsPerPage(e.target.value);
-  };
+
+
+
+
+
 
   return (
   <div className="bg-gray-100 p-6" style={{ minHeight: 'calc(100vh - 300px)' }}>
