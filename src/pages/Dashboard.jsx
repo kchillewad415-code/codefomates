@@ -14,9 +14,9 @@ export default function Dashboard() {
   ];
   const [selectedTech, setSelectedTech] = useState("");
 
-  // Get logged-in user and skills from sessionStorage
+  // Get logged-in user and skills from localStorage
   const loggedUser = (() => {
-    const stored = sessionStorage.getItem('loginProfile');
+    const stored = localStorage.getItem('loginProfile');
     return stored ? JSON.parse(stored) : null;
   })();
   const userSkills = Array.isArray(loggedUser?.skills) ? loggedUser.skills.map(s => s.toLowerCase()) : [];

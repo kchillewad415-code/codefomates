@@ -79,7 +79,7 @@ export default function AuthPage({ onLoginUser }) {
             updateUser(loginUser[0]._id, updateLoginUser);
             setForm({ username: "", email: "", password: "" });
             onLoginUser(updateLoginUser);
-            sessionStorage.setItem('loginProfile', JSON.stringify(updateLoginUser));
+            localStorage.setItem('loginProfile', JSON.stringify(updateLoginUser));
             navigate("/profile/editProfile");
           });
       } catch (err) {

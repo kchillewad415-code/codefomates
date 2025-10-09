@@ -10,7 +10,7 @@ export default function ProfilePage() {
     "JavaScript", "Python", "Java", "C++", "React", "Node.js", "TypeScript", "HTML", "CSS", "SQL", "Go", "Ruby", "PHP", "Swift", "Kotlin", "Rust", "Dart", "Angular", "Vue.js", ".NET", "Spring", "Express", "MongoDB", "Firebase", "GraphQL"
   ];
   const [available, setAvailable] = useState(true);
-  const [user, setUser] = useState(JSON.parse(sessionStorage.getItem("loginProfile")));
+  const [user, setUser] = useState(JSON.parse(localStorage.getItem("loginProfile")));
   const [loading, setLoading] = useState(true);
   const [bio, setBio] = useState("");
   const [linkedin, setLinkedin] = useState("");
@@ -71,8 +71,8 @@ export default function ProfilePage() {
     console.log("updateLoginUser", updateLoginUser);
     updateUser(user._id, updateLoginUser);
     setUser(updateLoginUser);
-    sessionStorage.removeItem('loginProfile');
-    sessionStorage.setItem('loginProfile', JSON.stringify(updateLoginUser));
+    localStorage.removeItem('loginProfile');
+    localStorage.setItem('loginProfile', JSON.stringify(updateLoginUser));
     alert("user profile updated");
   };
   const removeSkill = (skill) => {

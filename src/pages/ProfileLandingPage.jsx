@@ -23,7 +23,7 @@ function SkillList({ skills }) {
   // End of SkillList
 }
 function ResolvedIssues({ issues }) {
-  const storedUserProfile = JSON.parse(sessionStorage.getItem('loginProfile'));
+  const storedUserProfile = JSON.parse(localStorage.getItem('loginProfile'));
   const resolved = issues.filter(issue => issue.resolvedBy === storedUserProfile.username);
   console.log("resolved", resolved);
   console.log("storedUserProfile", storedUserProfile);
@@ -73,7 +73,7 @@ function IssueList({ issues, markClosed }) {
         const uniqueUsers = Array.from(
           new Map(res.data.map(item => [item.sender, item])).values()
         );
-        const storedUserProfile = JSON.parse(sessionStorage.getItem('loginProfile'));
+        const storedUserProfile = JSON.parse(localStorage.getItem('loginProfile'));
 
         const filtered = uniqueUsers.filter(user => user.sender !== storedUserProfile.username);
         console.log("uniqueUsers", uniqueUsers);
@@ -158,7 +158,7 @@ export default function ProfileLandingPage({ loginUser }) {
   const [loading, setLoading] = useState(true);
   const [allIssues, setAllIssues] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
-  const storedUserProfile = JSON.parse(sessionStorage.getItem('loginProfile'));
+  const storedUserProfile = JSON.parse(localStorage.getItem('loginProfile'));
   const resolved = issues.filter(issue => issue.resolvedBy === storedUserProfile.username);
 
   // Badge icon/description mapping

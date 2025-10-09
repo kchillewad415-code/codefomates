@@ -5,8 +5,8 @@ export default function ContactPage() {
   const [status, setStatus] = useState('');
 
   useEffect(() => {
-    // Try to get logged-in user info from sessionStorage
-    const storedUserProfile = sessionStorage.getItem('loginProfile');
+    // Try to get logged-in user info from localStorage
+    const storedUserProfile = localStorage.getItem('loginProfile');
     if (storedUserProfile) {
       const user = JSON.parse(storedUserProfile);
       setForm(f => ({ ...f, name: user.username || '', email: user.email || '' }));

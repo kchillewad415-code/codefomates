@@ -24,7 +24,7 @@ function App() {
     setLoggedUser(data);
   };
   useEffect(() => {
-    const storedUserProfile = sessionStorage.getItem('loginProfile');
+    const storedUserProfile = localStorage.getItem('loginProfile');
     if (storedUserProfile) {
       const loginUserProfile = JSON.parse(storedUserProfile);
       setLoggedUser(loginUserProfile);
@@ -34,8 +34,8 @@ function App() {
     try {
       const { password, ...rest } = updateData;
       await API.put(`/users/${updateData._id}`, rest);
-      sessionStorage.removeItem('loginProfile');
-      sessionStorage.clear();
+      localStorage.removeItem('loginProfile');
+      localStorage.clear();
       setLoggedUser({});
       window.location.replace("/login");
     } catch (err) {
