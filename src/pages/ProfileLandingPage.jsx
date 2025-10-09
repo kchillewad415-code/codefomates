@@ -20,15 +20,15 @@ function SkillList({ skills }) {
       </div>
     </div>
   );
-// End of SkillList
+  // End of SkillList
 }
 function ResolvedIssues({ issues }) {
   const storedUserProfile = JSON.parse(sessionStorage.getItem('loginProfile'));
-  const resolved = issues.filter(issue => issue.resolvedBy===storedUserProfile.username);
-  console.log("resolved",resolved);
-  console.log("storedUserProfile",storedUserProfile);
-  console.log("issues",issues);
-  if (resolved.length === 0) return <p className="text-gray-500 text-center">No issues resolved yet</p>;  
+  const resolved = issues.filter(issue => issue.resolvedBy === storedUserProfile.username);
+  console.log("resolved", resolved);
+  console.log("storedUserProfile", storedUserProfile);
+  console.log("issues", issues);
+  if (resolved.length === 0) return <p className="text-gray-500 text-center">No issues resolved yet</p>;
   return (
     <div className="mt-6">
       <h3 className="text-xl font-bold text-blue-600 mb-4">Resolved Issues</h3>
@@ -47,7 +47,7 @@ function ResolvedIssues({ issues }) {
               </p>
             </div>
             <div className="mt-4 sm:mt-0 bg-teal-700 text-white px-4 py-2 rounded-xl hover:bg-teal-800">
-            <Link to={`livesession/${issue._id}`}>session</Link>
+              <Link to={`livesession/${issue._id}`}>session</Link>
             </div>
           </div>
         ))}
@@ -63,24 +63,24 @@ function IssueList({ issues, markClosed }) {
   const [openPopupId, setOpenPopupId] = useState(null);
 
   const handleButtonClick = (issue) => {
-    console.log("issues",issue);
+    console.log("issues", issue);
     setOpenPopupId(issue._id);
     setIsOpen(true);
-    console.log("issue id",openPopupId);
-        axios.get(`${API_URL}/chat/${issue._id}`).then(res => {
+    console.log("issue id", openPopupId);
+    axios.get(`${API_URL}/chat/${issue._id}`).then(res => {
       if (res.data) {
-        console.log("resdata",res.data);
+        console.log("resdata", res.data);
         const uniqueUsers = Array.from(
-        new Map(res.data.map(item => [item.sender, item])).values()
-      );
-      const storedUserProfile = JSON.parse(sessionStorage.getItem('loginProfile'));
+          new Map(res.data.map(item => [item.sender, item])).values()
+        );
+        const storedUserProfile = JSON.parse(sessionStorage.getItem('loginProfile'));
 
-      const filtered = uniqueUsers.filter(user => user.sender !== storedUserProfile.username);
-      console.log("uniqueUsers",uniqueUsers);
+        const filtered = uniqueUsers.filter(user => user.sender !== storedUserProfile.username);
+        console.log("uniqueUsers", uniqueUsers);
         setChatRoomUsers(filtered);
       };
     }).catch((err) => console.log(err));
-    console.log("chatRoomUsers",chatRoomUsers);
+    console.log("chatRoomUsers", chatRoomUsers);
   };
 
   const handleClose = () => {
@@ -95,60 +95,60 @@ function IssueList({ issues, markClosed }) {
   };
   if (!issues || issues.length === 0) return <p className="text-gray-500 text-center">No issue logged till</p>;
   return (
-  <div className="mt-6">
-    <h3 className="text-xl font-bold text-blue-600 mb-4">Created Issues</h3>
-  {issues.map((issue) => (
-    <div
-      key={issue._id}
-      className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between"
-    >
-      <div>
-        <h3 className="text-xl font-semibold text-gray-800">{issue.title}</h3>
-        <p className="text-sm text-gray-600">Language: {issue.language} · Urgency: {issue.urgency}</p>
-      </div>
-      <div className="flex gap-2 mt-4 sm:mt-0">
-        <div style={{ cursor: 'pointer' }} onClick={() =>handleButtonClick(issue)} className="bg-teal-700 text-white px-4 py-2 rounded-xl hover:bg-teal-800">
-          {issue.isOpen ? "Close Issue" : "ReOpen"}
-        </div>
-        {openPopupId===issue._id && (
-          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col items-center">
-            <div className="bg-white border-4 border-blue-700 shadow-2xl rounded-2xl px-4 py-6 text-gray-900 w-[90vw] max-w-md sm:px-8 relative animate-fade-in">
-              <button
-                className="absolute top-3 right-3 text-gray-400 hover:text-blue-700 text-xl"
-                onClick={() => handleClose()}
-                aria-label="Close popup"
-              >
-                <svg width="24" height="24" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="4" x2="16" y2="16"/><line x1="16" y1="4" x2="4" y2="16"/></svg>
-              </button>
-              <div>
-              <div className="flex items-center mb-4">
-                <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" className="mr-3 text-blue-700"><path d="M12 19v-6m0 0V5m0 8l-4-4m4 4l4-4"/></svg>
-                <span className="font-extrabold text-blue-700 text-lg">{issue.isOpen ? "want to give a credit" : "want to send a notification to the previous resolver"}</span>
-              </div>
-              <h2>Select an Option</h2>
-              <select value={selectedOption} onChange={handleChange}>
-                <option value="">--Choose--</option>
-                {chatRoomUsers && chatRoomUsers.map((user) =>(
-                  <option key={user._id} value={user.sender}>{user.sender}</option>
-                )) }
-              </select>
-              </div>
-              <button
-                className="mt-4 w-full bg-blue-700 text-white py-2 rounded-xl hover:bg-blue-800 font-bold"
-                onClick={()=>{markClosed(issue, !issue.isOpen, selectedOption); handleClose()}}
-              >
-                {issue.isOpen ? "Close" : "ReOpen"}
-              </button>
-            </div>
+    <div className="mt-6">
+      <h3 className="text-xl font-bold text-blue-600 mb-4">Created Issues</h3>
+      {issues.map((issue) => (
+        <div
+          key={issue._id}
+          className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div>
+            <h3 className="text-xl font-semibold text-gray-800">{issue.title}</h3>
+            <p className="text-sm text-gray-600">Language: {issue.language} · Urgency: {issue.urgency}</p>
           </div>
-        )}
-        <Link to={`/dashboard/livesession/${issue._id}`} className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700">
-          Session
-        </Link>
-      </div>
-    </div>
-  ))}
-  </div>)
+          <div className="flex gap-2 mt-4 sm:mt-0">
+            <div style={{ cursor: 'pointer' }} onClick={() => handleButtonClick(issue)} className="bg-teal-700 text-white px-4 py-2 rounded-xl hover:bg-teal-800">
+              {issue.isOpen ? "Close Issue" : "ReOpen"}
+            </div>
+            {openPopupId === issue._id && (
+              <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col items-center">
+                <div className="bg-white border-4 border-blue-700 shadow-2xl rounded-2xl px-4 py-6 text-gray-900 w-[90vw] max-w-md sm:px-8 relative animate-fade-in">
+                  <button
+                    className="absolute top-3 right-3 text-gray-400 hover:text-blue-700 text-xl"
+                    onClick={() => handleClose()}
+                    aria-label="Close popup"
+                  >
+                    <svg width="24" height="24" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="4" x2="16" y2="16" /><line x1="16" y1="4" x2="4" y2="16" /></svg>
+                  </button>
+                  <div>
+                    <div className="flex items-center mb-4">
+                      <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" className="mr-3 text-blue-700"><path d="M12 19v-6m0 0V5m0 8l-4-4m4 4l4-4" /></svg>
+                      <span className="font-extrabold text-blue-700 text-lg">{issue.isOpen ? "want to give a credit" : "want to send a notification to the previous resolver"}</span>
+                    </div>
+                    <h2>Select an Option</h2>
+                    <select value={selectedOption} onChange={handleChange}>
+                      <option value="">--Choose--</option>
+                      {chatRoomUsers && chatRoomUsers.map((user) => (
+                        <option key={user._id} value={user.sender}>{user.sender}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    className="mt-4 w-full bg-blue-700 text-white py-2 rounded-xl hover:bg-blue-800 font-bold"
+                    onClick={() => { markClosed(issue, !issue.isOpen, selectedOption); handleClose() }}
+                  >
+                    {issue.isOpen ? "Close" : "ReOpen"}
+                  </button>
+                </div>
+              </div>
+            )}
+            <Link to={`/dashboard/livesession/${issue._id}`} className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700">
+              Session
+            </Link>
+          </div>
+        </div>
+      ))}
+    </div>)
 }
 
 export default function ProfileLandingPage({ loginUser }) {
@@ -159,8 +159,8 @@ export default function ProfileLandingPage({ loginUser }) {
   const [allIssues, setAllIssues] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
   const storedUserProfile = JSON.parse(sessionStorage.getItem('loginProfile'));
-  const resolved = issues.filter(issue => issue.resolvedBy===storedUserProfile.username);
-    
+  const resolved = issues.filter(issue => issue.resolvedBy === storedUserProfile.username);
+
   // Badge icon/description mapping
   const badgeMap = {
     "Top Solver": { icon: "🏆", description: "Solved 10+ issues" },
@@ -171,7 +171,7 @@ export default function ProfileLandingPage({ loginUser }) {
   useEffect(() => {
     async function fetchAll() {
       if (!loginUser || !loginUser._id) {
-       setLoading(false); 
+        setLoading(false);
         return;
       }
       setLoading(true);
@@ -203,25 +203,26 @@ export default function ProfileLandingPage({ loginUser }) {
       console.log(err);
     }
   };
-    const handleSubmitNotification = async (updateIssues) => {
-    const user = allUsers.find(u => u.username === updateIssues.resolvedBy); 
+  const handleSubmitNotification = async (updateIssues) => {
+    const user = allUsers.find(u => u.username === updateIssues.resolvedBy);
     try {
-      await API.post("https://codeformates-backend.vercel.app/reOpenNotification", { user:user , issue:updateIssues});
+      await API.post("https://codeformates-backend.vercel.app/reOpenNotification", { user: user, issue: updateIssues });
     } catch (err) {
-      console.log(err);}
+      console.log(err);
+    }
   };
 
   const markClosed = (issue, value, selectedOption) => {
     const updateIssues = { ...issue, isOpen: value, resolvedBy: selectedOption };
-    console.log("updateIssues",updateIssues);
-    console.log("selectedOption",selectedOption);
+    console.log("updateIssues", updateIssues);
+    console.log("selectedOption", selectedOption);
     updateIssue(updateIssues._id, updateIssues);
     setIssues(prevIssues => prevIssues.map(i => i._id === updateIssues._id ? { ...i, isOpen: value } : i));
     handleSubmitNotification(updateIssues);
   };
 
   return (
-  <div className="bg-gray-100 p-6" style={{ minHeight: 'calc(100vh - 300px)' }}>
+    <div className="bg-gray-100 p-6" style={{ minHeight: 'calc(100vh - 300px)' }}>
       <div className="max-w-4xl mx-auto">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-40">

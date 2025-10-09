@@ -38,7 +38,7 @@ export default function ContactPage() {
   };
 
   return (
-  <div className="bg-gray-100 p-6" style={{ minHeight: 'calc(100vh - 300px)' }}>
+    <div className="bg-gray-100 p-6" style={{ minHeight: 'calc(100vh - 300px)' }}>
       <div className="max-w-3xl mx-auto bg-white shadow-xl rounded-2xl p-6">
         <h2 className="text-3xl font-bold text-blue-600 mb-4">Contact Us</h2>
         <p className="text-gray-700 text-lg mb-6">
@@ -85,4 +85,3 @@ export default function ContactPage() {
     </div>
   );
 }
-  

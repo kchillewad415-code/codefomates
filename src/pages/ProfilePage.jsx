@@ -29,13 +29,13 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchUser = () => {
       setLoading(true);
-          if (user) {
-            setBio(user.bio || "");
-            setLinkedin(user.linkedin || "");
-            setGithub(user.github || "");
-            setBadges(user.badges || []);
-          }
-          setLoading(false);
+      if (user) {
+        setBio(user.bio || "");
+        setLinkedin(user.linkedin || "");
+        setGithub(user.github || "");
+        setBadges(user.badges || []);
+      }
+      setLoading(false);
     };
     fetchUser();
   }, []);
@@ -47,10 +47,10 @@ export default function ProfilePage() {
     setNewSkill("");
     setShowSuggestions(false);
   };
-  const updateUser = async(id,updateData) =>{
-    try{
-      await API.put(`/users/${updateData._id}`,updateData);
-    }catch(err){
+  const updateUser = async (id, updateData) => {
+    try {
+      await API.put(`/users/${updateData._id}`, updateData);
+    } catch (err) {
       console.log(err);
     }
   };
@@ -85,7 +85,7 @@ export default function ProfilePage() {
   );
 
   return (
-  <div className="bg-gray-100 p-6" style={{ minHeight: 'calc(100vh - 300px)' }}>
+    <div className="bg-gray-100 p-6" style={{ minHeight: 'calc(100vh - 300px)' }}>
       <div className="max-w-3xl mx-auto bg-white shadow-xl rounded-2xl p-6">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-40">
@@ -148,9 +148,8 @@ export default function ProfilePage() {
               <label className="text-lg font-medium mr-4">Available for helping:</label>
               <button
                 onClick={() => setAvailable(!available)}
-                className={`px-4 py-2 rounded-xl text-white ${
-                  available ? "bg-teal-700" : "bg-gray-500"
-                }`}
+                className={`px-4 py-2 rounded-xl text-white ${available ? "bg-teal-700" : "bg-gray-500"
+                  }`}
               >
                 {available ? "Yes" : "No"}
               </button>

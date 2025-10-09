@@ -1,13 +1,13 @@
 import React from 'react';
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import {motion} from "framer-motion";
+import { motion } from "framer-motion";
 import API from "../api";
 
 export default function HomePage() {
-  
+
   const [issues, setIssues] = useState([]);
-  const [users,setUsers] = useState([]);
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,29 +15,29 @@ export default function HomePage() {
     const fetchIssues = async () => {
       setLoading(true);
       API.get("/issues")
-        .then(res=>{
-          const resIssues = res.data.filter(item=>item.isOpen===true);
+        .then(res => {
+          const resIssues = res.data.filter(item => item.isOpen === true);
           setIssues(resIssues);
           setLoading(false);
         })
-        .catch(err=>{
+        .catch(err => {
           setLoading(false);
           console.log(err);
-        });   
+        });
     };
     fetchIssues();
     const fetchusers = async () => {
       setLoading(true);
       API.get("/users")
-        .then(res=>{
-          const resUsers = res.data.filter(item=>item.isOnline===true);
+        .then(res => {
+          const resUsers = res.data.filter(item => item.isOnline === true);
           setUsers(resUsers);
           setLoading(false);
         })
-        .catch(err=>{
+        .catch(err => {
           setLoading(false);
           console.log(err);
-        });   
+        });
     };
     fetchusers();
   }, []);
@@ -89,7 +89,7 @@ export default function HomePage() {
                 Join as a problem solver and pick issues you can solve in your own time. No pressure.
               </p>
               <div className="bg-teal-700 text-white px-6 py-2 rounded-xl hover:bg-teal-800 transition">
-              <Link to="/dashboard">I Want to Help</Link>
+                <Link to="/dashboard">I Want to Help</Link>
               </div>
             </motion.div>
           </div>

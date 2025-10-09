@@ -130,134 +130,134 @@ export default function AuthPage({ onLoginUser }) {
   };
 
   return (
-  <div className="bg-gray-100 p-4" style={{ minHeight: 'calc(100vh - 300px)' }}>
-        <div className="flex items-center justify-center">
-      <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center h-40">
-            <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-            </svg>
-            <span className="mt-2 text-blue-600">Loading users...</span>
-          </div>
-        ) : (
-          <>
-            <h2 className="text-2xl font-bold text-center mb-4 text-blue-600">
-              {isSignup ? "Sign Up" : "Log In"}
-            </h2>
-            {wrongpassword ? <span className="text-red-600">wrong email or password</span> : null}
-            {nouser ? <span className="text-red-600">No user found check again or signup</span> : null}
-            {!showForgot ? (
-              <>
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  {isSignup && (
-                    <>
-                      <input
-                        type="text"
-                        name="username"
-                        value={form.username}
-                        onChange={handleChange}
-                        placeholder="Username"
-                        className="w-full px-4 py-2 border rounded-xl"
-                        required
-                      />
-                      {errormsg ? <span className="text-red-600">username already Exist try another</span> : null}
-                    </>
-                  )}
-                  <input
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    placeholder="Email"
-                    className="w-full px-4 py-2 border rounded-xl"
-                    required
-                  />
-                  {duplicateEmail ? <span className="text-red-600">Email already in use. Please use a different email.</span> : null}
-                  <div className="relative">
+    <div className="bg-gray-100 p-4" style={{ minHeight: 'calc(100vh - 300px)' }}>
+      <div className="flex items-center justify-center">
+        <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center h-40">
+              <svg className="animate-spin h-8 w-8 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+              </svg>
+              <span className="mt-2 text-blue-600">Loading users...</span>
+            </div>
+          ) : (
+            <>
+              <h2 className="text-2xl font-bold text-center mb-4 text-blue-600">
+                {isSignup ? "Sign Up" : "Log In"}
+              </h2>
+              {wrongpassword ? <span className="text-red-600">wrong email or password</span> : null}
+              {nouser ? <span className="text-red-600">No user found check again or signup</span> : null}
+              {!showForgot ? (
+                <>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    {isSignup && (
+                      <>
+                        <input
+                          type="text"
+                          name="username"
+                          value={form.username}
+                          onChange={handleChange}
+                          placeholder="Username"
+                          className="w-full px-4 py-2 border rounded-xl"
+                          required
+                        />
+                        {errormsg ? <span className="text-red-600">username already Exist try another</span> : null}
+                      </>
+                    )}
                     <input
-                      type={showPassword ? "text" : "password"}
-                      name="password"
-                      value={form.password}
+                      type="email"
+                      name="email"
+                      value={form.email}
                       onChange={handleChange}
-                      placeholder="Password"
+                      placeholder="Email"
                       className="w-full px-4 py-2 border rounded-xl"
                       required
                     />
+                    {duplicateEmail ? <span className="text-red-600">Email already in use. Please use a different email.</span> : null}
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        name="password"
+                        value={form.password}
+                        onChange={handleChange}
+                        placeholder="Password"
+                        className="w-full px-4 py-2 border rounded-xl"
+                        required
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-blue-600 hover:underline"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                      >
+                        {showPassword ? "Hide" : "Show"}
+                      </button>
+                    </div>
+                    {isSignup && (
+                      <div className="text-xs text-red-600 mt-1">{passwordError}</div>
+                    )}
+                    {isSignup && (
+                      <ul className="text-xs text-gray-500 mt-1 list-disc pl-5">
+                        <li className="text-red-600">Password must be at least 8 characters</li>
+                        <li className="text-red-600">Include uppercase, lowercase, number, and special character</li>
+                      </ul>
+                    )}
                     <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-blue-600 hover:underline"
-                      onClick={() => setShowPassword((prev) => !prev)}
+                      type="submit"
+                      className="w-full bg-blue-600 text-white py-2 rounded-xl hover:bg-blue-700"
                     >
-                      {showPassword ? "Hide" : "Show"}
+                      {isSignup ? "Create Account" : "Log In"}
+                    </button>
+                  </form>
+                  <div className="text-right mt-2">
+                    <button
+                      className="text-blue-600 text-sm hover:underline"
+                      onClick={() => setShowForgot(true)}
+                    >
+                      Forgot Password?
                     </button>
                   </div>
-                  {isSignup && (
-                    <div className="text-xs text-red-600 mt-1">{passwordError}</div>
-                  )}
-                  {isSignup && (
-                    <ul className="text-xs text-gray-500 mt-1 list-disc pl-5">
-                      <li className="text-red-600">Password must be at least 8 characters</li>
-                      <li className="text-red-600">Include uppercase, lowercase, number, and special character</li>
-                    </ul>
-                  )}
+                </>
+              ) : (
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <input
+                    type="email"
+                    name="forgotEmail"
+                    value={forgotEmail}
+                    onChange={e => setForgotEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="w-full px-4 py-2 border rounded-xl"
+                    required
+                  />
                   <button
                     type="submit"
                     className="w-full bg-blue-600 text-white py-2 rounded-xl hover:bg-blue-700"
                   >
-                    {isSignup ? "Create Account" : "Log In"}
+                    Send Reset Link
                   </button>
-                </form>
-                <div className="text-right mt-2">
                   <button
-                    className="text-blue-600 text-sm hover:underline"
-                    onClick={() => setShowForgot(true)}
+                    type="button"
+                    className="w-full bg-gray-300 text-gray-700 py-2 rounded-xl mt-2"
+                    onClick={() => { setShowForgot(false); setForgotStatus(""); }}
                   >
-                    Forgot Password?
+                    Back to Login
                   </button>
-                </div>
-              </>
-            ) : (
-              <form onSubmit={handleForgotPassword} className="space-y-4">
-                <input
-                  type="email"
-                  name="forgotEmail"
-                  value={forgotEmail}
-                  onChange={e => setForgotEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  className="w-full px-4 py-2 border rounded-xl"
-                  required
-                />
+                  {forgotStatus && <div className="mt-2 text-blue-600 text-center">{forgotStatus}</div>}
+                </form>
+              )}
+              <p className="text-sm text-center mt-4 text-gray-600">
+                {isSignup ? "Already have an account?" : "Don't have an account?"} {" "}
                 <button
-                  type="submit"
-                  className="w-full bg-blue-600 text-white py-2 rounded-xl hover:bg-blue-700"
+                  onClick={() => { setIsSignup(!isSignup); setErrormsg(false); setWrongpassword(false); setNouser(false); setForgotStatus(""); setShowForgot(false); setDuplicateEmail(false); }}
+                  className="text-blue-600 hover:underline"
                 >
-                  Send Reset Link
+                  {isSignup ? "Log In" : "Sign Up"}
                 </button>
-                <button
-                  type="button"
-                  className="w-full bg-gray-300 text-gray-700 py-2 rounded-xl mt-2"
-                  onClick={() => { setShowForgot(false); setForgotStatus(""); }}
-                >
-                  Back to Login
-                </button>
-                {forgotStatus && <div className="mt-2 text-blue-600 text-center">{forgotStatus}</div>}
-              </form>
-            )}
-            <p className="text-sm text-center mt-4 text-gray-600">
-              {isSignup ? "Already have an account?" : "Don't have an account?"} {" "}
-              <button
-                onClick={() => {setIsSignup(!isSignup); setErrormsg(false); setWrongpassword(false); setNouser(false); setForgotStatus(""); setShowForgot(false); setDuplicateEmail(false);}}
-                className="text-blue-600 hover:underline"
-              >
-                {isSignup ? "Log In" : "Sign Up"}
-              </button>
-            </p>
-          </>
-        )}
+              </p>
+            </>
+          )}
+        </div>
       </div>
-    </div>
     </div>
   );
 }

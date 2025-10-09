@@ -48,95 +48,79 @@ export default function Dashboard() {
     filteredIssues = filteredIssues.filter(i => userSkills.includes(i.language.toLowerCase()));
   }
 
-const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-// 1️⃣ On mount → Read filters + pagination from URL
-useEffect(() => {
-  const queryParams = new URLSearchParams(window.location.search);
+  // 1️⃣ On mount → Read filters + pagination from URL
+  useEffect(() => {
+    const queryParams = new URLSearchParams(window.location.search);
 
-  const filterParam = queryParams.get("filter") || "";
-  const selectedTechParam = queryParams.get("selectedTech") || "";
-  const showSkillFilterParam = queryParams.get("showSkillFilter") === "true";
-  const pageParam = parseInt(queryParams.get("page")) || 1;
-  const limitParam = parseInt(queryParams.get("limit")) || itemsPerPage; // default itemsPerPage
+    const filterParam = queryParams.get("filter") || "";
+    const selectedTechParam = queryParams.get("selectedTech") || "";
+    const showSkillFilterParam = queryParams.get("showSkillFilter") === "true";
+    const pageParam = parseInt(queryParams.get("page")) || 1;
+    const limitParam = parseInt(queryParams.get("limit")) || itemsPerPage; // default itemsPerPage
 
-  setFilter(filterParam);
-  setSelectedTech(selectedTechParam);
-  setShowSkillFilter(showSkillFilterParam);
-  setCurrentPage(pageParam);
-  setItemsPerPage(limitParam);
+    setFilter(filterParam);
+    setSelectedTech(selectedTechParam);
+    setShowSkillFilter(showSkillFilterParam);
+    setCurrentPage(pageParam);
+    setItemsPerPage(limitParam);
 
-  setIsInitialLoad(false);
-}, []);
+    setIsInitialLoad(false);
+  }, []);
 
-// 2️⃣ On filters or pagination change → Update URL (skip first render)
-useEffect(() => {
-  if (isInitialLoad) return; // Prevent wiping URL on first render
+  // 2️⃣ On filters or pagination change → Update URL (skip first render)
+  useEffect(() => {
+    if (isInitialLoad) return; // Prevent wiping URL on first render
 
-  const queryParams = new URLSearchParams();
+    const queryParams = new URLSearchParams();
 
-  // Filters
-  if (filter) queryParams.append("filter", filter);
-  if (selectedTech) queryParams.append("selectedTech", selectedTech);
-  if (showSkillFilter) queryParams.append("showSkillFilter", showSkillFilter);
+    // Filters
+    if (filter) queryParams.append("filter", filter);
+    if (selectedTech) queryParams.append("selectedTech", selectedTech);
+    if (showSkillFilter) queryParams.append("showSkillFilter", showSkillFilter);
 
-  // Pagination
-  if (currentPage > 1) queryParams.append("page", currentPage);
-  if (itemsPerPage) queryParams.append("limit", itemsPerPage); // skip default to keep URL clean
+    // Pagination
+    if (currentPage > 1) queryParams.append("page", currentPage);
+    if (itemsPerPage) queryParams.append("limit", itemsPerPage); // skip default to keep URL clean
 
-  const newUrl = `${window.location.pathname}${queryParams.toString() ? "?" + queryParams.toString() : ""}`;
-  window.history.replaceState(null, "", newUrl);
-}, [filter, selectedTech, showSkillFilter, currentPage, itemsPerPage, isInitialLoad]);
-
-
-
-
-
-
-
-
-
+    const newUrl = `${window.location.pathname}${queryParams.toString() ? "?" + queryParams.toString() : ""}`;
+    window.history.replaceState(null, "", newUrl);
+  }, [filter, selectedTech, showSkillFilter, currentPage, itemsPerPage, isInitialLoad]);
   // Pagination logic
   const totalPages = Math.ceil(filteredIssues.length / itemsPerPage);
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentItems = filteredIssues.slice(indexOfFirstItem, indexOfLastItem);
-const handlePageChange = (page) => {
-  setCurrentPage(page);
-  window.scrollTo({ top: 0, behavior: "smooth" }); // Optional — scroll to top on page change
-};
-const handleNext = () => {
-  if (currentPage < totalPages) handlePageChange(currentPage + 1);
-};
-const handlePrev = () => {
-  if (currentPage > 1) handlePageChange(currentPage - 1);
-};
-const handleChange = (e) => {
-  const value = parseInt(e.target.value, 10);
-  setItemsPerPage(value);
-  setCurrentPage(1); // reset to first page when per-page changes
-};
-
-
-
-
-
-
-
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: "smooth" }); // Optional — scroll to top on page change
+  };
+  const handleNext = () => {
+    if (currentPage < totalPages) handlePageChange(currentPage + 1);
+  };
+  const handlePrev = () => {
+    if (currentPage > 1) handlePageChange(currentPage - 1);
+  };
+  const handleChange = (e) => {
+    const value = parseInt(e.target.value, 10);
+    setItemsPerPage(value);
+    setCurrentPage(1); // reset to first page when per-page changes
+  };
   return (
-  <div className="bg-gray-100 p-6" style={{ minHeight: 'calc(100vh - 300px)' }}>
+    <div className="bg-gray-100 p-6" style={{ minHeight: 'calc(100vh - 300px)' }}>
       <div className="max-w-4xl mx-auto">
         <h2 className="text-3xl font-bold text-blue-600 mb-6 relative">Solver Dashboard
 
-              <div className="text-sm text-gray-600 mt-2 md:absolute md:top-0 md:right-0">
-                <label htmlFor="paginationCount">Items per page :  </label>
-                <select id="paginationCount" value={itemsPerPage} onChange={handleChange} style={{borderRadius: '20px', padding: '5px', marginLeft: '5px'}}>
-                  <option key="1" value="1">1</option>
-                  <option key="2" value="5">5</option>
-                  <option key="3" value="10">10</option>
-                  <option key="4" value="20">20</option>
-                </select>
-            </div>
+          <div className="text-sm text-gray-600 mt-2 md:absolute md:top-0 md:right-0">
+            <label htmlFor="paginationCount">Items per page :  </label>
+            <select id="paginationCount" value={itemsPerPage} onChange={handleChange} style={{ borderRadius: '20px', padding: '5px', marginLeft: '5px' }}>
+              <option key="1" value="1">1</option>
+              <option key="2" value="5">5</option>
+              <option key="3" value="10">10</option>
+              <option key="4" value="20">20</option>
+            </select>
+          </div>
 
 
         </h2>
@@ -181,75 +165,72 @@ const handleChange = (e) => {
           </div>
         ) : (
           <>
-          <div className="grid gap-4">
-            {currentItems.length > 0 ? (
-              currentItems.map((issue) => (
-                <div
-                  key={issue._id}
-                  className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between"
+            <div className="grid gap-4">
+              {currentItems.length > 0 ? (
+                currentItems.map((issue) => (
+                  <div
+                    key={issue._id}
+                    className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <h3 className="text-xl font-semibold text-gray-800">
+                        {issue.title}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        Language: {issue.language} · Urgency: {issue.urgency}
+                      </p>
+                    </div>
+                    <div className="mt-4 sm:mt-0 bg-teal-700 text-white px-4 py-2 rounded-xl hover:bg-teal-800">
+                      <Link to={`livesession/${issue._id}`}>session</Link>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-gray-500 text-center">No issues found</p>
+              )}
+            </div>
+            {totalPages > 1 &&
+              <div className="flex justify-center items-center space-x-2 mt-6">
+                <button
+                  onClick={handlePrev}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1 rounded ${currentPage === 1
+                      ? "bg-gray-300 cursor-not-allowed"
+                      : "bg-blue-500 hover:bg-blue-600 text-white"
+                    }`}
                 >
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-800">
-                      {issue.title}
-                    </h3>
-                    <p className="text-sm text-gray-600">
-                      Language: {issue.language} · Urgency: {issue.urgency}
-                    </p>
-                  </div>
-                  <div className="mt-4 sm:mt-0 bg-teal-700 text-white px-4 py-2 rounded-xl hover:bg-teal-800">
-                  <Link to={`livesession/${issue._id}`}>session</Link>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-500 text-center">No issues found</p>
-            )}
-          </div>
-            { totalPages > 1 &&
-            <div className="flex justify-center items-center space-x-2 mt-6">
-        <button
-          onClick={handlePrev}
-          disabled={currentPage === 1}
-          className={`px-3 py-1 rounded ${
-            currentPage === 1
-              ? "bg-gray-300 cursor-not-allowed"
-              : "bg-blue-500 hover:bg-blue-600 text-white"
-          }`}
-        >
-          Prev
-        </button>
-          {[...Array(totalPages)].map((_, index) => {
-          const page = index + 1;
-          return (
-            <button
-              key={page}
-              onClick={() => handlePageChange(page)}
-              className={`px-3 py-1 rounded ${
-                currentPage === page
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-200 hover:bg-gray-300"
-              }`}
-            >
-              {page}
-            </button>
-            
-          );
-        })}
-        <button
-          onClick={handleNext}
-          disabled={currentPage === totalPages}
-          className={`px-3 py-1 rounded ${
-            currentPage === totalPages
-              ? "bg-gray-300 cursor-not-allowed"
-              : "bg-blue-500 hover:bg-blue-600 text-white"
-          }`}
-        >
-          Next
-        </button>
-        </div>
-      } 
+                  Prev
+                </button>
+                {[...Array(totalPages)].map((_, index) => {
+                  const page = index + 1;
+                  return (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`px-3 py-1 rounded ${currentPage === page
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-200 hover:bg-gray-300"
+                        }`}
+                    >
+                      {page}
+                    </button>
 
-</>
+                  );
+                })}
+                <button
+                  onClick={handleNext}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-1 rounded ${currentPage === totalPages
+                      ? "bg-gray-300 cursor-not-allowed"
+                      : "bg-blue-500 hover:bg-blue-600 text-white"
+                    }`}
+                >
+                  Next
+                </button>
+              </div>
+            }
+
+          </>
         )}
       </div>
     </div>

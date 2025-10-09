@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useNavigate } from 'react-router-dom';
 import API from "../api";
 
-export default function IssueForm({loginUserId}) {
+export default function IssueForm({ loginUserId }) {
   const navigate = useNavigate();
   const [selectedFile, setSelectedFile] = useState(null);
   const [form, setForm] = useState({
@@ -13,7 +13,7 @@ export default function IssueForm({loginUserId}) {
     customLanguage: "",
     urgency: "now",
   });
-  
+
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
 
   const submitIssue = async (issueData) => {
@@ -51,7 +51,7 @@ export default function IssueForm({loginUserId}) {
       ...form,
       language: finalLanguage,
       file: file,
-      userid:loginUserId,
+      userid: loginUserId,
     };
     delete issueData.customLanguage;
     submitIssue(issueData);
@@ -72,10 +72,10 @@ export default function IssueForm({loginUserId}) {
               onClick={() => setShowPopup(false)}
               aria-label="Close popup"
             >
-              <svg width="24" height="24" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="4" x2="16" y2="16"/><line x1="16" y1="4" x2="4" y2="16"/></svg>
+              <svg width="24" height="24" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2"><line x1="4" y1="4" x2="16" y2="16" /><line x1="16" y1="4" x2="4" y2="16" /></svg>
             </button>
             <div className="flex items-center mb-4">
-              <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" className="mr-3 text-blue-700"><path d="M12 19v-6m0 0V5m0 8l-4-4m4 4l4-4"/></svg>
+              <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" className="mr-3 text-blue-700"><path d="M12 19v-6m0 0V5m0 8l-4-4m4 4l4-4" /></svg>
               <span className="font-extrabold text-blue-700 text-lg">Login Recommended</span>
             </div>
             <div className="text-base mb-3 font-medium">For best experience, please login before submitting an issue.</div>
@@ -89,7 +89,7 @@ export default function IssueForm({loginUserId}) {
         <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 flex flex-col items-center">
           <div className="bg-white border-4 border-blue-700 shadow-2xl rounded-2xl px-4 py-6 text-gray-900 w-[90vw] max-w-md sm:px-8 relative animate-fade-in">
             <div className="flex items-center mb-4">
-              <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" className="mr-3 text-blue-700"><circle cx="16" cy="16" r="14" stroke="currentColor" strokeWidth="2" fill="none"/><path d="M10 16l4 4 8-8" stroke="currentColor" strokeWidth="2" fill="none"/></svg>
+              <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" className="mr-3 text-blue-700"><circle cx="16" cy="16" r="14" stroke="currentColor" strokeWidth="2" fill="none" /><path d="M10 16l4 4 8-8" stroke="currentColor" strokeWidth="2" fill="none" /></svg>
               <span className="font-extrabold text-blue-700 text-lg">Issue Submitted!</span>
             </div>
             <div className="text-base mb-3 font-medium">Your issue has been submitted successfully.</div>
@@ -202,14 +202,14 @@ export default function IssueForm({loginUserId}) {
         </div>
         <div className="flex items-center">
           <label className="font-medium text-gray-700">
-              Attach File
-            </label>
-            <input
-              type="file"
-              accept=".png,.jpg,.jpeg,.pdf,.txt,.js,.ts,.py,.java,.zip"
-              onChange={(e) => setSelectedFile(e.target.files[0])}
-              className="w-full border px-3 py-2 rounded-xl mb-4"
-            />
+            Attach File
+          </label>
+          <input
+            type="file"
+            accept=".png,.jpg,.jpeg,.pdf,.txt,.js,.ts,.py,.java,.zip"
+            onChange={(e) => setSelectedFile(e.target.files[0])}
+            className="w-full border px-3 py-2 rounded-xl mb-4"
+          />
         </div>
         <button
           type="submit"
