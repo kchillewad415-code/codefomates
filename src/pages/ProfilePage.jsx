@@ -16,10 +16,6 @@ export default function ProfilePage() {
   const [linkedin, setLinkedin] = useState("");
   const [github, setGithub] = useState("");
   const [badges, setBadges] = useState([]);
-  const sessionHistory = [
-    { id: 1, title: "Helped fix async bug", date: "2025-07-05" },
-    { id: 2, title: "Guided API integration", date: "2025-07-03" },
-  ];
   // Redirect to login if not logged in, after loading
   React.useEffect(() => {
     if (!loading && (!user || !user._id)) {
@@ -216,20 +212,8 @@ export default function ProfilePage() {
               <div className="mb-6"></div>
               <button
                 onClick={updateSkill}
-                className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700"
+                className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 mt-10"
               >Update Profile</button>
-            </div>
-
-            {/* Session History */}
-            <div>
-              <h3 className="text-lg font-medium mb-2">Session History:</h3>
-              <ul className="list-disc list-inside text-gray-700">
-                {sessionHistory.map((session) => (
-                  <li key={session._id}>
-                    {session.title} <span className="text-sm text-gray-500">({session.date})</span>
-                  </li>
-                ))}
-              </ul>
             </div>
           </>
         )}

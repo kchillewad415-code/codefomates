@@ -82,16 +82,25 @@ function App() {
               {loggedUser && loggedUser.isOnline ? (
                 <div className="flex items-center space-x-3">
                   {/* Stylish circular user icon */}
-                  <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
-                    <circle cx="12" cy="8" r="4" />
-                    <rect x="6" y="16" width="12" height="4" rx="2" />
-                  </svg>
-                  <button
-                    onClick={() => logoutUser()}
-                    className="text-sm text-red-600 hover:underline"
-                  >
-                    Logout
-                  </button>
+                  <div className="relative group inline-block">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 text-blue-600 cursor-pointer" viewBox="0 0 24 24" fill="currentColor">
+                      <circle cx="12" cy="8" r="4" />
+                      <rect x="6" y="16" width="12" height="4" rx="2" />
+                    </svg>
+                    <div className="absolute top-full left-0 -translate-x-1/2 mb-2 whitespace-nowrap 
+        bg-white text-black text-sm px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 
+        transition-opacity duration-200 border-4 border-gray-300 shadow-lg flex flex-col items-center border-size-3">
+                      <div>{loggedUser.username}</div>
+                      <div>
+                      <button
+                        onClick={() => logoutUser()}
+                        className="text-sm text-red-600 hover:underline"
+                      >
+                        Logout
+                      </button>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : (
                 <div className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700">
@@ -194,7 +203,7 @@ function App() {
                         className="text-sm text-red-600 hover:underline"
                       >
                         Logout
-                      </button>
+                      </button><span> ({loggedUser.username})</span>
                     </div>
                   ) : (
                     <div className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-all duration-300 opacity-0 translate-y-4 animate-fadein delay-900">
