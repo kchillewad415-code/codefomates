@@ -3,6 +3,8 @@ import { Video, MessageSquare } from "lucide-react";
 import { io } from 'socket.io-client';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
+import API from "../api";
+import { set } from 'mongoose';
 
 const SOCKET_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 const API_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
@@ -20,6 +22,7 @@ export default function LiveSession({ user }) {
   const [cameraStream, setCameraStream] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
   const [issueFile, setIssueFile] = useState(null);
+  const [issue, setIssue] = useState(null);
 
   const videoSectionRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -67,6 +70,8 @@ export default function LiveSession({ user }) {
 
     // Fetch issue file
     axios.get(`${API_URL}/issues/${roomId}`).then(res => {
+      if (res.data?.solution) setSolutionProvided(res.data.solution);
+      if (res.data) setIssue(res.data);
       if (res.data?.file?.filename) setIssueFile(res.data.file.filename);
       else setIssueFile(null);
     }).catch(() => setIssueFile(null));
@@ -301,7 +306,31 @@ export default function LiveSession({ user }) {
       setScreenStream(null);
     }
   };
+  const [solutionProvided, setSolutionProvided] = useState("");
+  const handleSolutionChange = (e) => {
+    setSolutionProvided(e.target.value);
+    console.log(e.target.value);
+    console.log(solutionProvided);
+  }
+  const handleSolutionSubmit = (e) => {
+    e.preventDefault();
+    if (!solutionProvided.trim()) return;
 
+    const updateIssues = { ...issue, solution: solutionProvided };
+    console.log(updateIssues);
+    updateIssue(updateIssues._id, updateIssues);
+  };
+
+  const updateIssue = async (id, updateIssue) => {
+    console.log(id, updateIssue);
+    try {
+      const response = API.put(`/issues/${id}`, updateIssue);
+      alert("Updated successfully!");
+    }
+    catch (err) {
+      console.log(err);
+    }
+  };
   return (
     <div className="max-w-7xl mx-auto px-4 flex flex-col lg:flex-row gap-6">
       {/* Chat Section */}
@@ -421,6 +450,32 @@ export default function LiveSession({ user }) {
             </a>
           )}
         </div>
+        <div className="mt-4 text-gray-500 text-sm hidden md:block w-full">
+          <form className="space-y-4" onSubmit={handleSolutionSubmit}>
+            <label className="font-bold">Solution concluded:</label>
+            <input
+              type="text"
+              value={solutionProvided}
+              placeholder="Solution"
+              className="w-full px-4 py-2 border rounded-xl my-2"
+              required
+              onChange={handleSolutionChange} />
+            <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded-xl ml-2">Submit Solution</button>
+          </form>
+        </div>
+      </div>
+      <div className="mt-4 text-gray-500 text-sm md:hidden">
+        <form className="space-y-4" onSubmit={handleSolutionSubmit}>
+          <label className="font-bold">Solution concluded:</label>
+          <input
+            type="text"
+            value={solutionProvided}
+            placeholder="Solution"
+            className="w-full px-4 py-2 border rounded-xl my-2"
+            required
+            onChange={handleSolutionChange} />
+          <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded-xl ml-2">Submit Solution</button>
+        </form>
       </div>
     </div>
   );

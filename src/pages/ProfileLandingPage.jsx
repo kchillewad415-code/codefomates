@@ -46,6 +46,15 @@ function ResolvedIssues({ issues }) {
                 Language: {issue.language} · Urgency: {issue.urgency}
               </p>
             </div>
+            {issue.solution && <div className="relative group inline-block">
+              <svg class="w-5 h-5 text-blue-500 cursor-pointer" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="M12 14l2 2l4-4"></path><path d="M12 14v4"></path></svg>
+
+              <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap 
+        bg-gray-800 text-white text-sm px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 
+        transition-opacity duration-200">
+                Solution: {issue.solution}
+              </span>
+            </div>}
             <div className="mt-4 sm:mt-0 bg-teal-700 text-white px-4 py-2 rounded-xl hover:bg-teal-800">
               <Link to={`livesession/${issue._id}`}>session</Link>
             </div>
@@ -100,12 +109,21 @@ function IssueList({ issues, markClosed }) {
       {issues.map((issue) => (
         <div
           key={issue._id}
-          className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between"
+          className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between my-5"
         >
           <div>
             <h3 className="text-xl font-semibold text-gray-800">{issue.title}</h3>
             <p className="text-sm text-gray-600">Language: {issue.language} · Urgency: {issue.urgency}</p>
           </div>
+          {issue.solution && <div className="relative group inline-block">
+            <svg class="w-5 h-5 text-blue-500 cursor-pointer" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="M12 14l2 2l4-4"></path><path d="M12 14v4"></path></svg>
+
+            <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap 
+        bg-gray-800 text-white text-sm px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 
+        transition-opacity duration-200">
+              Solution: {issue.solution}
+            </span>
+          </div>}
           <div className="flex gap-2 mt-4 sm:mt-0">
             <div style={{ cursor: 'pointer' }} onClick={() => handleButtonClick(issue)} className="bg-teal-700 text-white px-4 py-2 rounded-xl hover:bg-teal-800">
               {issue.isOpen ? "Close Issue" : "ReOpen"}
