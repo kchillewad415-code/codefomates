@@ -4,7 +4,6 @@ import { io } from 'socket.io-client';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
 import API from "../api";
-import { set } from 'mongoose';
 
 const SOCKET_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 const API_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
