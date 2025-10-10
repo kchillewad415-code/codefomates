@@ -119,8 +119,7 @@ export default function Dashboard() {
   }
   // Add first page
   if (startPage > 1) {
-    pageNumbers.push(1);
-    if (startPage > 2) pageNumbers.push("left-ellipsis");
+    if (startPage >= 2) pageNumbers.push("left-ellipsis");
   }
   // Add visible range
   for (let i = startPage; i <= endPage; i++) {
@@ -128,23 +127,12 @@ export default function Dashboard() {
   }
   // Add last page
   if (endPage < totalPages) {
-    if (endPage < totalPages - 1) pageNumbers.push("right-ellipsis");
-    pageNumbers.push(totalPages);
+    if (endPage <= totalPages - 1) pageNumbers.push("right-ellipsis");
   }
   return (
     <div className="bg-gray-100 p-6" style={{ minHeight: 'calc(100vh - 300px)' }}>
       <div className="max-w-4xl mx-auto">
         <h2 className="text-3xl font-bold text-blue-600 mb-6 relative">Solver Dashboard
-
-          <div className="text-sm text-gray-600 mt-2 md:absolute md:top-0 md:right-0">
-            <label htmlFor="paginationCount">Items per page :  </label>
-            <select id="paginationCount" value={itemsPerPage} onChange={handleChange} style={{ borderRadius: '20px', padding: '5px', marginLeft: '5px' }}>
-              <option key="1" value="1">1</option>
-              <option key="2" value="5">5</option>
-              <option key="3" value="10">10</option>
-              <option key="4" value="20">20</option>
-            </select>
-          </div>
         </h2>
         <div className="mb-4 flex flex-col gap-2">
           <div className="flex flex-col sm:flex-row gap-2">
@@ -195,6 +183,18 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
+          <div className="text-3xl font-bold text-blue-600 inline-flex justify-between w-full items-center mb-4">
+          <div className="text-sm text-gray-600">
+            <label htmlFor="paginationCount">Items per page :  </label>
+            <select id="paginationCount" value={itemsPerPage} onChange={handleChange} style={{ borderRadius: '20px', padding: '5px', marginLeft: '5px' }}>
+              <option key="1" value="1">1</option>
+              <option key="2" value="5">5</option>
+              <option key="3" value="10">10</option>
+              <option key="4" value="20">20</option>
+            </select>
+          </div>
+          <div className="text-sm text-gray-600"><span>Total Pages present : <span className="md:inline-block w-[25px]">{totalPages}</span></span></div>
+            </div>
             <div className="grid gap-4">
               {currentItems.length > 0 ? (
                 currentItems.map((issue) => (
@@ -242,10 +242,10 @@ export default function Dashboard() {
                       onClick={() => typeof page === "number" && handlePageChange(page)}
                       disabled={page === "left-ellipsis" || page === "right-ellipsis"}
                       className={`px-3 py-1 rounded mx-1 ${page === "left-ellipsis" || page === "right-ellipsis"
-                          ? "cursor-default text-gray-400"
-                          : currentPage === page
-                            ? "bg-blue-600 text-white"
-                            : "bg-gray-200 hover:bg-gray-300"
+                        ? "cursor-default text-gray-400"
+                        : currentPage === page
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-200 hover:bg-gray-300"
                         }`}
                     >
                       {page === "left-ellipsis"
