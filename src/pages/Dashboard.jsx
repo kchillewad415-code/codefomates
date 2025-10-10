@@ -91,7 +91,6 @@ export default function Dashboard() {
   const currentItems = filteredIssues.slice(indexOfFirstItem, indexOfLastItem);
   const handlePageChange = (page) => {
     setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: "smooth" }); // Optional — scroll to top on page change
   };
   const handleNext = () => {
     if (currentPage < totalPages) handlePageChange(currentPage + 1);
@@ -129,6 +128,19 @@ export default function Dashboard() {
   if (endPage < totalPages) {
     if (endPage <= totalPages - 1) pageNumbers.push("right-ellipsis");
   }
+  const [goToPage, setGoToPage] = useState("");
+  const handleGoToPage = (e) => {
+    e.preventDefault();
+    const pageNum = parseInt(goToPage, 10);
+    if (!isNaN(pageNum) && pageNum >= 1 && pageNum <= totalPages) {
+      handlePageChange(pageNum);
+      setGoToPage("");
+    }
+  };
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [currentPage]);
   return (
     <div className="bg-gray-100 p-6" style={{ minHeight: 'calc(100vh - 300px)' }}>
       <div className="max-w-4xl mx-auto">
@@ -183,17 +195,17 @@ export default function Dashboard() {
           </div>
         ) : (
           <>
-          <div className="text-3xl font-bold text-blue-600 inline-flex justify-between w-full items-center mb-4">
-          <div className="text-sm text-gray-600">
-            <label htmlFor="paginationCount">Items per page :  </label>
-            <select id="paginationCount" value={itemsPerPage} onChange={handleChange} style={{ borderRadius: '20px', padding: '5px', marginLeft: '5px' }}>
-              <option key="1" value="1">1</option>
-              <option key="2" value="5">5</option>
-              <option key="3" value="10">10</option>
-              <option key="4" value="20">20</option>
-            </select>
-          </div>
-          <div className="text-sm text-gray-600"><span>Total Pages present : <span className="md:inline-block w-[25px]">{totalPages}</span></span></div>
+            <div className="text-3xl font-bold text-blue-600 inline-flex justify-between w-full items-center mb-4">
+              <div className="text-sm text-gray-600">
+                <label htmlFor="paginationCount">Items per page :  </label>
+                <select id="paginationCount" value={itemsPerPage} onChange={handleChange} style={{ borderRadius: '20px', padding: '5px', marginLeft: '5px' }}>
+                  <option key="1" value="1">1</option>
+                  <option key="2" value="5">5</option>
+                  <option key="3" value="10">10</option>
+                  <option key="4" value="20">20</option>
+                </select>
+              </div>
+              <div className="text-sm text-gray-600"><span>Total Pages present : <span className="md:inline-block w-[25px]">{totalPages}</span></span></div>
             </div>
             <div className="grid gap-4">
               {currentItems.length > 0 ? (
@@ -224,48 +236,67 @@ export default function Dashboard() {
               )}
             </div>
             {totalPages > 1 &&
-              <div className="flex justify-center items-center space-x-2 mt-6">
-                <button
-                  onClick={handlePrev}
-                  disabled={currentPage === 1}
-                  className={`px-3 py-1 rounded ${currentPage === 1
-                    ? "bg-gray-300 cursor-not-allowed"
-                    : "bg-blue-500 hover:bg-blue-600 text-white"
-                    }`}
-                >
-                  Prev
-                </button>
-                {
-                  pageNumbers.map((page, index) => (
-                    <button
-                      key={index}
-                      onClick={() => typeof page === "number" && handlePageChange(page)}
-                      disabled={page === "left-ellipsis" || page === "right-ellipsis"}
-                      className={`px-3 py-1 rounded mx-1 ${page === "left-ellipsis" || page === "right-ellipsis"
-                        ? "cursor-default text-gray-400"
-                        : currentPage === page
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-200 hover:bg-gray-300"
-                        }`}
-                    >
-                      {page === "left-ellipsis"
-                        ? "..."
-                        : page === "right-ellipsis"
+              <>
+                <form onSubmit={handleGoToPage} className="flex justify-center items-center gap-2 ml-3 mt-6">
+                  <input
+                    type="number"
+                    min="1"
+                    max={totalPages}
+                    value={goToPage}
+                    onChange={(e) => setGoToPage(e.target.value)}
+                    placeholder="Go to..."
+                    className="w-20 px-2 py-1 border rounded focus:outline-none focus:ring-2 focus:ring-blue-400"
+                  />
+                  <button
+                    type="submit"
+                    className="px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                  >
+                    Go
+                  </button>
+                </form>
+                <div className="flex justify-center items-center space-x-2 mt-6">
+                  <button
+                    onClick={handlePrev}
+                    disabled={currentPage === 1}
+                    className={`px-3 py-1 rounded ${currentPage === 1
+                      ? "bg-gray-300 cursor-not-allowed"
+                      : "bg-blue-500 hover:bg-blue-600 text-white"
+                      }`}
+                  >
+                    Prev
+                  </button>
+                  {
+                    pageNumbers.map((page, index) => (
+                      <button
+                        key={index}
+                        onClick={() => typeof page === "number" && handlePageChange(page)}
+                        disabled={page === "left-ellipsis" || page === "right-ellipsis"}
+                        className={`px-3 py-1 rounded mx-1 ${page === "left-ellipsis" || page === "right-ellipsis"
+                          ? "cursor-default text-gray-400"
+                          : currentPage === page
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-200 hover:bg-gray-300"
+                          }`}
+                      >
+                        {page === "left-ellipsis"
                           ? "..."
-                          : page}
-                    </button>
-                  ))}
-                <button
-                  onClick={handleNext}
-                  disabled={currentPage === totalPages}
-                  className={`px-3 py-1 rounded ${currentPage === totalPages
-                    ? "bg-gray-300 cursor-not-allowed"
-                    : "bg-blue-500 hover:bg-blue-600 text-white"
-                    }`}
-                >
-                  Next
-                </button>
-              </div>
+                          : page === "right-ellipsis"
+                            ? "..."
+                            : page}
+                      </button>
+                    ))}
+                  <button
+                    onClick={handleNext}
+                    disabled={currentPage === totalPages}
+                    className={`px-3 py-1 rounded ${currentPage === totalPages
+                      ? "bg-gray-300 cursor-not-allowed"
+                      : "bg-blue-500 hover:bg-blue-600 text-white"
+                      }`}
+                  >
+                    Next
+                  </button>
+                </div>
+              </>
             }
 
           </>
