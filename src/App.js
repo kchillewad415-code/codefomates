@@ -25,6 +25,8 @@ function App() {
   const [loggedUser, setLoggedUser] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState(0);
+  const [animate, setAnimate] = useState(false);
+  const [targetCount, setTargetCount] = useState(0);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   useEffect(() => {
     if (isInitialLoad) {
@@ -38,7 +40,9 @@ function App() {
     socket.emit("registerUser", userId);
 
     socket.on('onlineUsers', (count) => {
-      setOnlineUsers(count);
+      setTargetCount(count);
+      setAnimate(true);
+      setTimeout(() => setAnimate(false), 500);
     });
     setIsInitialLoad(false);
   }
@@ -46,6 +50,25 @@ function App() {
       socket.off('onlineUsers');
     };
   }, []);
+
+
+useEffect(() => {
+  let animationFrame;
+  const speed = 20;
+const animate=() => {
+    setOnlineUsers((prev) => {
+      const diff = targetCount - prev;
+      if(diff<=0) return targetCount;
+      const increment = Math.ceil(diff / speed);
+      return prev + increment;
+    });
+    if(onlineUsers < targetCount) {
+      animationFrame = requestAnimationFrame(animate);
+    }
+  };
+  animationFrame = requestAnimationFrame(animate);
+  return () => cancelAnimationFrame(animationFrame);
+}, [targetCount]);
 
   const handleLoginUser = (data) => {
     setLoggedUser(data);
@@ -249,7 +272,7 @@ function App() {
         {/* Main content area grows to fill space above footer */}
         <div className="flex-1">
           <Routes>
-            <Route path="/" element={<HomePage onlineUsers={onlineUsers} />} />
+            <Route path="/" element={<HomePage onlineUsers={onlineUsers} animate={animate} />} />
             <Route path="/login" element={<AuthPage
               onLoginUser={handleLoginUser}
             />} />

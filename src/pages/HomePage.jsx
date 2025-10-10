@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import API from "../api";
 
-export default function HomePage({onlineUsers}) {
+export default function HomePage({onlineUsers, animate}) {
 
   const [issues, setIssues] = useState([]);
   const [users, setUsers] = useState([]);
@@ -56,7 +56,7 @@ export default function HomePage({onlineUsers}) {
         <>
           <section className="text-center mb-4">
             <p className="text-gray-600">
-              <strong>{issues.length}</strong> developers currently need help · <strong>{onlineUsers}</strong> solvers online
+              <strong>{issues.length}</strong> developers currently need help · <strong><span className={animate? "count animate":"count" }>{onlineUsers}</span></strong> solvers online
             </p>
           </section>
 

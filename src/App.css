@@ -27,7 +27,14 @@
 .App-link {
   color: #61dafb;
 }
-
+.count {
+  display: inline-block;
+  transition: transform 0.5s ease, color 0.5s ease;
+}
+.count.animate {
+  transform: scale(1.5);
+  color: #4caf50;
+}
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
