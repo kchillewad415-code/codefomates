@@ -3,8 +3,9 @@ import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import API from "../api";
+import Carousel from './IssuesCarousel';
 
-export default function HomePage({onlineUsers, animate}) {
+export default function HomePage({ onlineUsers, animate }) {
 
   const [issues, setIssues] = useState([]);
   const [users, setUsers] = useState([]);
@@ -56,7 +57,7 @@ export default function HomePage({onlineUsers, animate}) {
         <>
           <section className="text-center mb-4">
             <p className="text-gray-600">
-              <strong>{issues.length}</strong> developers currently need help · <strong><span className={animate? "count animate":"count" }>{onlineUsers}</span></strong> solvers online
+              <strong>{issues.length}</strong> developers currently need help · <strong><span className={animate ? "count animate" : "count"}>{onlineUsers}</span></strong> solvers online
             </p>
           </section>
 
@@ -92,6 +93,10 @@ export default function HomePage({onlineUsers, animate}) {
                 <Link to="/dashboard">I Want to Help</Link>
               </div>
             </motion.div>
+          </div>
+          <div className="max-w-4xl w-full mt-10">
+            <h2 className='text-3xl font-bold text-blue-600 mb-6 relative'>Issues</h2>
+            <Carousel items={issues} />
           </div>
         </>
       )}

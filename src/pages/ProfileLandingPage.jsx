@@ -39,7 +39,7 @@ function ResolvedIssues({ issues }) {
             className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between"
           >
             <div>
-              <h3 className="text-xl font-semibold text-gray-800">
+              <h3 className="text-xl text-left font-semibold text-gray-800">
                 {issue.title}
               </h3>
               <p className="text-sm text-gray-600">
@@ -112,7 +112,7 @@ function IssueList({ issues, markClosed }) {
           className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between my-5"
         >
           <div>
-            <h3 className="text-xl font-semibold text-gray-800">{issue.title}</h3>
+            <h3 className="text-xl text-left font-semibold text-gray-800">{issue.title}</h3>
             <p className="text-sm text-gray-600">Language: {issue.language} · Urgency: {issue.urgency}</p>
           </div>
           {issue.solution && <div className="relative group inline-block">
@@ -252,7 +252,7 @@ export default function ProfileLandingPage({ loginUser }) {
           </div>
         ) : (
           <>
-            <h2 className="text-3xl font-bold text-blue-600 mb-6">Solver Dashboard</h2>
+            <h2 className="text-3xl font-bold text-blue-600 mb-6">Profile Details</h2>
 
             <div className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 mb-6">
               <Link to="/profile/editProfile">Edit Profile</Link>

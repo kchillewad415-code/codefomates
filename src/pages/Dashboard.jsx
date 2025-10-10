@@ -215,7 +215,7 @@ export default function Dashboard() {
                     className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-800">
+                      <h3 className="text-xl font-semibold text-left text-gray-800">
                         {issue.title}
                       </h3>
                       <p className="text-sm text-gray-600 mt-3">

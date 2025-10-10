@@ -1,73 +1,63 @@
-// import { useEffect, useState } from "react";
-// import { Link } from "react-router-dom";
-// import {Carousel} from "@material-tailwind/react";
-// import API from "../api";
-// export default function Dashboard() {
-//   const [issues, setIssues] = useState([]);
-//   const [filter, setFilter] = useState("");
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 
-//   useEffect(() => {
-//     // Simulated issue fetch - replace with API call
-//     const fetchIssues = async () => {
-      
-//         API.get("/issues")
-//         .then(res=>{
-//           const resIssues = res.data.filter(item=>item.isOpen===true);
-//           setIssues(resIssues);
-//         })
-//         .catch(err=>{
-//           console.log(err);
-//         });
-//     };
-//     fetchIssues();
-//   }, []);
+const CardGrid = ({ items }) => {
+    const [displayItems, setDisplayItems] = useState([]);
 
-//   const filteredIssues = filter
-//     ? issues.filter((i) => i.language.toLowerCase().includes(filter.toLowerCase()))
-//     : issues;
+    // Function to pick N random unique items
+    const getRandomItems = (arr, n) => {
+        const shuffled = [...arr].sort(() => 0.5 - Math.random());
+        return shuffled.slice(0, n);
+    };
 
-//   return (
-//     <div className=" bg-gray-100 p-6">
-//       <div className="max-w-4xl mx-auto">
-//         <h2 className="text-3xl font-bold text-blue-600 mb-6">Solver Dashboard</h2>
+    // Update display items based on screen width
+    const updateDisplayItems = () => {
+        const width = window.innerWidth;
+        if (width < 640) {
+            // mobile → 1 item
+            setDisplayItems(getRandomItems(items, 3));
+        } else if (width < 1024) {
+            // tablet → 2 items
+            setDisplayItems(getRandomItems(items, 4));
+        } else {
+            // desktop → 3 items
+            setDisplayItems(getRandomItems(items, 6));
+        }
+    };
 
-//         <div className="mb-4">
-//           <input
-//             type="text"
-//             placeholder="Filter by language (e.g. Python)"
-//             value={filter}
-//             onChange={(e) => setFilter(e.target.value)}
-//             className="w-full px-4 py-2 border rounded-xl"
-//           />
-//         </div>
+    useEffect(() => {
+        updateDisplayItems();
+        window.addEventListener("resize", updateDisplayItems);
+        return () => window.removeEventListener("resize", updateDisplayItems);
+    }, [items]);
 
-//         <div className="grid gap-4">
-//           {filteredIssues.length > 0 ? (
-//             filteredIssues.map((issue) => (
-//                 <Carousel className="rounded-xl">
-//               <div
-//                 key={issue.id}
-//                 className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between"
-//               >
-//                 <div>
-//                   <h3 className="text-xl font-semibold text-gray-800">
-//                     {issue.title}
-//                   </h3>
-//                   <p className="text-sm text-gray-600">
-//                     Language: {issue.language} · Urgency: {issue.urgency}
-//                   </p>
-//                 </div>
-//                 <div className="mt-4 sm:mt-0 bg-green-600 text-white px-4 py-2 rounded-xl hover:bg-green-700">
-//                 <Link to="/dashboard/livesession">session</Link>
-//                 </div>
-//               </div>
-//               </Carousel>
-//             ))
-//           ) : (
-//             <p className="text-gray-500 text-center">No issues found</p>
-//           )}
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
+    return (
+        <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+            {displayItems.map((issue) => (
+                <div
+                    key={issue._id}
+                    className="bg-gray-800 text-white rounded-xl shadow p-4 flex flex-col sm:justify-between"
+                >
+                    <div>
+                        <h3 className="text-xl text-white font-semibold text-gray-800">
+                            {issue.title}
+                        </h3>
+                        <p className="text-sm text-white mt-3">
+                            Language: {issue.language}<span className={
+                                issue.urgency === "now"
+                                    ? "text-red-700 bg-red-100 border border-red-400 px-2 py-0.5 rounded ml-2 align-middle"
+                                    : "text-green-700 bg-green-100 border border-green-400 px-2 py-0.5 rounded ml-2 align-middle"
+                            }>Urgency: {issue.urgency}</span>
+                        </p>
+                    </div>
+                    <div className="mt-4 bg-teal-700 text-white px-4 py-2 rounded-xl hover:bg-teal-800">
+                        <Link to={`dashboard/livesession/${issue._id}`}>session</Link>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+};
+
+export default CardGrid;
+
