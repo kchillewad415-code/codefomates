@@ -16,9 +16,36 @@ import API from "../src/api";
 import ProfileLandingPage from './pages/ProfileLandingPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import NotFoundPage from './pages/NotFoundPage';
+import {io} from "socket.io-client";
+import {v4 as uuidv4} from "uuid";
+// Replace with your server URL
+const SOCKET_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
+const socket = io(SOCKET_URL);
 function App() {
   const [loggedUser, setLoggedUser] = useState([]);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [onlineUsers, setOnlineUsers] = useState(0);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  useEffect(() => {
+    if (isInitialLoad) {
+    let userId = JSON.parse(localStorage.getItem('loginProfile'))?._id || localStorage.getItem('userId');
+    if(!userId){
+      userId = uuidv4();
+      console.log("Generated new userId:", userId);
+      localStorage.setItem('userId', userId);
+    }
+
+    socket.emit("registerUser", userId);
+
+    socket.on('onlineUsers', (count) => {
+      setOnlineUsers(count);
+    });
+    setIsInitialLoad(false);
+  }
+    return () => {
+      socket.off('onlineUsers');
+    };
+  }, []);
 
   const handleLoginUser = (data) => {
     setLoggedUser(data);
@@ -222,7 +249,7 @@ function App() {
         {/* Main content area grows to fill space above footer */}
         <div className="flex-1">
           <Routes>
-            <Route path="/" element={<HomePage />} />
+            <Route path="/" element={<HomePage onlineUsers={onlineUsers} />} />
             <Route path="/login" element={<AuthPage
               onLoginUser={handleLoginUser}
             />} />
