@@ -308,20 +308,16 @@ export default function LiveSession({ user }) {
   const [solutionProvided, setSolutionProvided] = useState("");
   const handleSolutionChange = (e) => {
     setSolutionProvided(e.target.value);
-    console.log(e.target.value);
-    console.log(solutionProvided);
   }
   const handleSolutionSubmit = (e) => {
     e.preventDefault();
     if (!solutionProvided.trim()) return;
 
     const updateIssues = { ...issue, solution: solutionProvided };
-    console.log(updateIssues);
     updateIssue(updateIssues._id, updateIssues);
   };
 
   const updateIssue = async (id, updateIssue) => {
-    console.log(id, updateIssue);
     try {
       const response = API.put(`/issues/${id}`, updateIssue);
       alert("Updated successfully!");
@@ -339,7 +335,7 @@ export default function LiveSession({ user }) {
             <MessageSquare className="w-5 h-5" /> Chat
           </span>
           {/* Small video icon at the top right of chat */}
-          <p><strong>{issue?.title ? `Issue:- ${issue.title}` : '' }</strong></p>
+          <p><strong>{issue?.title ? `Issue:- ${issue.title}` : ''}</strong></p>
           <button
             className="p-1 md:hidden rounded-full bg-blue-100 hover:bg-blue-200"
             onClick={() => {

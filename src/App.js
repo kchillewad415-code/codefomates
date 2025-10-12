@@ -16,9 +16,10 @@ import API from "../src/api";
 import ProfileLandingPage from './pages/ProfileLandingPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import NotFoundPage from './pages/NotFoundPage';
-import {io} from "socket.io-client";
-import {v4 as uuidv4} from "uuid";
+import { io } from "socket.io-client";
+import { v4 as uuidv4 } from "uuid";
 import AdminAccess from "./pages/AdminAccess";
+import AdminPage from "./pages/AdminPage"
 // Replace with your server URL
 const SOCKET_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 const socket = io(SOCKET_URL);
@@ -31,45 +32,44 @@ function App() {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   useEffect(() => {
     if (isInitialLoad) {
-    let userId = JSON.parse(localStorage.getItem('loginProfile'))?._id || localStorage.getItem('userId');
-    if(!userId){
-      userId = uuidv4();
-      console.log("Generated new userId:", userId);
-      localStorage.setItem('userId', userId);
+      let userId = JSON.parse(localStorage.getItem('loginProfile'))?._id || localStorage.getItem('userId');
+      if (!userId) {
+        userId = uuidv4();
+        localStorage.setItem('userId', userId);
+      }
+
+      socket.emit("registerUser", userId);
+
+      socket.on('onlineUsers', (count) => {
+        setTargetCount(count);
+        setAnimate(true);
+        setTimeout(() => setAnimate(false), 500);
+      });
+      setIsInitialLoad(false);
     }
-
-    socket.emit("registerUser", userId);
-
-    socket.on('onlineUsers', (count) => {
-      setTargetCount(count);
-      setAnimate(true);
-      setTimeout(() => setAnimate(false), 500);
-    });
-    setIsInitialLoad(false);
-  }
     return () => {
       socket.off('onlineUsers');
     };
   }, []);
 
 
-useEffect(() => {
-  let animationFrame;
-  const speed = 20;
-const animate=() => {
-    setOnlineUsers((prev) => {
-      const diff = targetCount - prev;
-      if(diff<=0) return targetCount;
-      const increment = Math.ceil(diff / speed);
-      return prev + increment;
-    });
-    if(onlineUsers < targetCount) {
-      animationFrame = requestAnimationFrame(animate);
-    }
-  };
-  animationFrame = requestAnimationFrame(animate);
-  return () => cancelAnimationFrame(animationFrame);
-}, [targetCount]);
+  useEffect(() => {
+    let animationFrame;
+    const speed = 20;
+    const animate = () => {
+      setOnlineUsers((prev) => {
+        const diff = targetCount - prev;
+        if (diff <= 0) return targetCount;
+        const increment = Math.ceil(diff / speed);
+        return prev + increment;
+      });
+      if (onlineUsers < targetCount) {
+        animationFrame = requestAnimationFrame(animate);
+      }
+    };
+    animationFrame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(animationFrame);
+  }, [targetCount]);
 
   const handleLoginUser = (data) => {
     setLoggedUser(data);
@@ -91,7 +91,6 @@ const animate=() => {
       window.location.replace("/login");
     } catch (err) {
       console.log(err);
-      console.log("update User called inside error", err);
     }
   };
   const logoutUser = () => {
@@ -143,12 +142,12 @@ const animate=() => {
         transition-opacity duration-200 border-4 border-gray-300 shadow-lg flex flex-col items-center border-size-3">
                       <div>{loggedUser.username}</div>
                       <div>
-                      <button
-                        onClick={() => logoutUser()}
-                        className="text-sm text-red-600 hover:underline"
-                      >
-                        Logout
-                      </button>
+                        <button
+                          onClick={() => logoutUser()}
+                          className="text-sm text-red-600 hover:underline"
+                        >
+                          Logout
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -281,14 +280,15 @@ const animate=() => {
               loginUserId={loggedUser._id}
             />} />
             <Route path="/dashboard/livesession/:roomId" element={<LiveSession user={loggedUser} />} />
-            <Route path="/issue/:issueId" element={<IssueForm loginUserId={loggedUser._id}/>}/>
+            <Route path="/issue/:issueId" element={<IssueForm loginUserId={loggedUser._id} />} />
             <Route path="/profile" element={<ProfileLandingPage loginUser={loggedUser} />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/profile/editProfile" element={<ProfilePage />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
-            <Route path="/admin" element={<AdminAccess onLoginUser={handleLoginUser}/>}/>
+            <Route path="/krato" element={<AdminAccess onLoginUser={handleLoginUser} />} />
+            <Route path="/krato/details" element={<AdminPage user={loggedUser} />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </div>
@@ -299,15 +299,3 @@ const animate=() => {
 }
 
 export default App;
-
-/* Add keyframes for fadein animation in your CSS (App.css or global):
-@keyframes fadein {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-.animate-fadein {
-  animation: fadein 0.4s forwards;
-}
-*/

@@ -23,7 +23,7 @@ function SkillList({ skills }) {
   // End of SkillList
 }
 function ResolvedIssues({ loginUser }) {
-  
+
   if (loginUser.resolvedHistory.length === 0) return <p className="text-gray-500 text-center">No issues resolved yet</p>;
   return (
     <div className="mt-6">
@@ -38,16 +38,16 @@ function ResolvedIssues({ loginUser }) {
               <h3 className="text-xl md:text-left font-semibold text-gray-800">
                 {issue.title ? issue.title : ""}
               </h3>
-               <p className="text-sm text-gray-600 mt-3">
-                        Language: {issue.language}<span className={
-                          issue.urgency === "now"
-                            ? "text-red-700 bg-red-100 border border-red-400 px-2 py-0.5 rounded ml-2"
-                            : "text-green-700 bg-green-100 border border-green-400 px-2 py-0.5 rounded ml-2"
-                        }>Urgency: {issue.urgency}</span>
-                      </p>
+              <p className="text-sm text-gray-600 mt-3">
+                Language: {issue.language}<span className={
+                  issue.urgency === "now"
+                    ? "text-red-700 bg-red-100 border border-red-400 px-2 py-0.5 rounded ml-2"
+                    : "text-green-700 bg-green-100 border border-green-400 px-2 py-0.5 rounded ml-2"
+                }>Urgency: {issue.urgency}</span>
+              </p>
             </div>
             {issue.solution && <div className="relative group inline-block m-auto">
-              <svg class="w-5 h-5 text-blue-500 cursor-pointer" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="M12 14l2 2l4-4"></path><path d="M12 14v4"></path></svg>
+              <svg className="w-5 h-5 text-blue-500 cursor-pointer" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="M12 14l2 2l4-4"></path><path d="M12 14v4"></path></svg>
 
               <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap 
         bg-gray-800 text-white text-sm px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 
@@ -72,24 +72,19 @@ function IssueList({ issues, markClosed, onDelete }) {
   const [openPopupId, setOpenPopupId] = useState(null);
 
   const handleButtonClick = (issue) => {
-    console.log("issues", issue);
     setOpenPopupId(issue._id);
     setIsOpen(true);
-    console.log("issue id", openPopupId);
     axios.get(`${API_URL}/chat/${issue._id}`).then(res => {
       if (res.data) {
-        console.log("resdata", res.data);
         const uniqueUsers = Array.from(
           new Map(res.data.map(item => [item.sender, item])).values()
         );
         const storedUserProfile = JSON.parse(localStorage.getItem('loginProfile'));
 
         const filtered = uniqueUsers.filter(user => user.sender !== storedUserProfile.username);
-        console.log("uniqueUsers", uniqueUsers);
         setChatRoomUsers(filtered);
       };
     }).catch((err) => console.log(err));
-    console.log("chatRoomUsers", chatRoomUsers);
   };
 
   const handleClose = () => {
@@ -129,16 +124,16 @@ function IssueList({ issues, markClosed, onDelete }) {
         >
           <div>
             <h3 className="text-xl md:text-left font-semibold text-gray-800">{issue.title}</h3>
-             <p className="text-sm text-gray-600 mt-3">
-                        Language: {issue.language}<span className={
-                          issue.urgency === "now"
-                            ? "text-red-700 bg-red-100 border border-red-400 px-2 py-0.5 rounded ml-2"
-                            : "text-green-700 bg-green-100 border border-green-400 px-2 py-0.5 rounded ml-2"
-                        }>Urgency: {issue.urgency}</span>
-                      </p>
+            <p className="text-sm text-gray-600 mt-3">
+              Language: {issue.language}<span className={
+                issue.urgency === "now"
+                  ? "text-red-700 bg-red-100 border border-red-400 px-2 py-0.5 rounded ml-2"
+                  : "text-green-700 bg-green-100 border border-green-400 px-2 py-0.5 rounded ml-2"
+              }>Urgency: {issue.urgency}</span>
+            </p>
           </div>
           {issue.solution && <div className="relative group inline-block m-auto">
-            <svg class="w-5 h-5 text-blue-500 cursor-pointer" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="M12 14l2 2l4-4"></path><path d="M12 14v4"></path></svg>
+            <svg className="w-5 h-5 text-blue-500 cursor-pointer" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="M12 14l2 2l4-4"></path><path d="M12 14v4"></path></svg>
 
             <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap 
         bg-gray-800 text-white text-sm px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 
@@ -185,7 +180,7 @@ function IssueList({ issues, markClosed, onDelete }) {
             <Link to={`/issue/${issue._id}`} className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700">
               Edit
             </Link>
-            <button onClick={() => deleteIssue(issue._id)} class="bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700">delete</button>
+            <button onClick={() => deleteIssue(issue._id)} className="bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700">delete</button>
             <Link to={`/dashboard/livesession/${issue._id}`} className="bg-gray-600 hidden md:block text-white px-4 py-2 rounded-xl hover:bg-gray-700">
               Session
             </Link>
@@ -249,7 +244,7 @@ export default function ProfileLandingPage({ loginUser }) {
     }
   };
 
-    const updateUser = async (id, updateData) => {
+  const updateUser = async (id, updateData) => {
     try {
       await API.put(`/users/${id}`, updateData);
       alert("user Updated");
@@ -269,26 +264,20 @@ export default function ProfileLandingPage({ loginUser }) {
 
   const markClosed = (issue, value, selectedOption) => {
     const updateIssues = { ...issue, isOpen: value, resolvedBy: selectedOption };
-    console.log("updateIssues", updateIssues);
-    console.log("selectedOption", selectedOption);
     updateIssue(updateIssues._id, updateIssues);
     setIssues(prevIssues => prevIssues.map(i => i._id === updateIssues._id ? { ...i, isOpen: value } : i));
-    if(selectedOption) {
+    if (selectedOption) {
       const user = allUsers.find(u => u.username === updateIssues.resolvedBy);
-      if(user) {
-        console.log(updateIssues);
+      if (user) {
         const resolvedHistory = {
           issueId: updateIssues._id,
           title: updateIssues.title,
           language: updateIssues.language,
           urgency: updateIssues.urgency,
-          solution:updateIssues.solution
+          solution: updateIssues.solution
         }
-
-        console.log("resolvedHIstory",resolvedHistory);
-        const updatedUser = {...user,resolvedHistory :[...user.resolvedHistory, resolvedHistory] };
+        const updatedUser = { ...user, resolvedHistory: [...user.resolvedHistory, resolvedHistory] };
         updateUser(user._id, updatedUser);
-          console.log("updated user", updatedUser);
       }
     }
     handleSubmitNotification(updateIssues);

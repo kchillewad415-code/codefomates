@@ -53,8 +53,7 @@ export default function ProfilePage() {
   };
   const updateSkill = () => {
     // Merge old and new skills into a flat array
-    const allSkills = Array.from(new Set([ ...skills]));
-    console.log("user", user);
+    const allSkills = Array.from(new Set([...skills]));
     const updateLoginUser = {
       ...user,
       skills: allSkills,
@@ -63,8 +62,6 @@ export default function ProfilePage() {
       github,
       badges,
     };
-
-    console.log("updateLoginUser", updateLoginUser);
     updateUser(user._id, updateLoginUser);
     setUser(updateLoginUser);
     localStorage.removeItem('loginProfile');

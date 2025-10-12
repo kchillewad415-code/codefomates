@@ -9,7 +9,7 @@ export default function IssueForm({ loginUserId }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [resIssueFile, setResIssueFile] = useState(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
-    const techOptions = [
+  const techOptions = [
     "JavaScript", "Python", "Java", "C++", "React", "Node.js", "TypeScript", "HTML", "CSS", "SQL", "Go", "Ruby", "PHP", "Swift", "Kotlin", "Rust", "Dart", "Angular", "Vue.js", ".NET", "Spring", "Express", "MongoDB", "Firebase", "GraphQL"
   ];
   const [form, setForm] = useState({
@@ -46,18 +46,15 @@ export default function IssueForm({ loginUserId }) {
     API.get("/issues")
       .then(res => {
         const resIssue = res.data.filter(item => item._id === issueId)[0];
-        console.log("issue",resIssue);
-        const language = techOptions.filter((l)=>l==resIssue.language);
-        console.log(language);
+        const language = techOptions.filter((l) => l == resIssue.language);
         setForm({
           title: resIssue.title,
           description: resIssue.description,
-          language: language.length ==0 ?  "custom" : resIssue.language,
+          language: language.length == 0 ? "custom" : resIssue.language,
           customLanguage: resIssue.language,
           urgency: resIssue.urgency,
         });
-        console.log("file", resIssue.file);
-        if(resIssue.file) setResIssueFile(resIssue.file);
+        if (resIssue.file) setResIssueFile(resIssue.file);
         setIsInitialLoad(false);
       })
       .catch(err => {
@@ -66,19 +63,18 @@ export default function IssueForm({ loginUserId }) {
       });
   };
   useEffect(() => {
-      if(issueId) {
-      console.log(issueId);
+    if (issueId) {
       fetchIssues();
-      }
-      else {
-            setForm({
-      title: "",
-      description: "",
-      language: "",
-      customLanguage: "",
-      urgency: "now",
-    });
-      }
+    }
+    else {
+      setForm({
+        title: "",
+        description: "",
+        language: "",
+        customLanguage: "",
+        urgency: "now",
+      });
+    }
   }, [issueId]);
 
   const handleChange = (e) => {
@@ -86,7 +82,6 @@ export default function IssueForm({ loginUserId }) {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
   const updateIssue = async (updateIssue) => {
-    console.log("updated issue",updateIssue);
     try {
       await API.put(`/issues/${issueId}`, updateIssue);
       setShowSuccessPopup(true);
@@ -99,7 +94,6 @@ export default function IssueForm({ loginUserId }) {
     e.preventDefault();
     const finalLanguage = form.language === "custom" ? form.customLanguage : form.language;
     const file = selectedFile ? selectedFile : null;
-    console.log("loginUserId", loginUserId);
     const issueData = {
       ...form,
       language: finalLanguage,
@@ -107,9 +101,9 @@ export default function IssueForm({ loginUserId }) {
       userid: loginUserId,
     };
     delete issueData.customLanguage;
-    if(issueId){
+    if (issueId) {
       updateIssue(issueData);
-    }else {
+    } else {
       submitIssue(issueData);
     }
   };
@@ -152,7 +146,7 @@ export default function IssueForm({ loginUserId }) {
             <div className="text-base mb-3 font-medium">Your issue has been submitted successfully.</div>
             <button
               className="mt-4 w-full bg-blue-700 text-white py-2 rounded-xl hover:bg-blue-800 font-bold"
-              onClick={() => { setShowSuccessPopup(false); navigate('/profile'); }}
+              onClick={() => { setShowSuccessPopup(false); navigate('/dashboard'); }}
             >
               OK
             </button>
@@ -196,8 +190,8 @@ export default function IssueForm({ loginUserId }) {
           >
             <option value="">Select Language/Tech</option>
             {techOptions.map(opt => (
-                <option key={opt} value={opt}>{opt}</option>
-              ))}
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
             <option value="custom">Other (Type below)</option>
           </select>
           {form.language === "custom" && (

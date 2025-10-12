@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 export default function AdminAccess({ onLoginUser }) {
     const [isSignup, setIsSignup] = useState(false);
-    const [form, setForm] = useState({ email: "", password: ""});
+    const [form, setForm] = useState({ email: "", password: "" });
     const [errormsg, setErrormsg] = useState(false);
     const [wrongpassword, setWrongpassword] = useState(false);
     const [nouser, setNouser] = useState(false);
@@ -39,17 +39,17 @@ export default function AdminAccess({ onLoginUser }) {
         const user = localStorage.getItem("loginProfile");
 
         if (user) {
-            navigate("/");
+            navigate("/krato/details");
         }
 
     }, []);
-  const updateUser = async (id, updateData) => {
-    try {
-      await API.put(`/users/${id}`, updateData);
-    } catch (err) {
-      console.log(err);
-    }
-  };
+    const updateUser = async (id, updateData) => {
+        try {
+            await API.put(`/users/${id}`, updateData);
+        } catch (err) {
+            console.log(err);
+        }
+    };
 
 
     const handleChange = (e) => {
@@ -57,17 +57,12 @@ export default function AdminAccess({ onLoginUser }) {
     };
     const checkLogin = async () => {
         const loginUser = users && users.filter(item => item.email === form.email);
-        console.log("admin data",loginUser, form);
         if (loginUser && loginUser.length > 0) {
-                    console.log("admin data inside if",loginUser,form);
 
             try {
-                                    console.log("admin data inside try",loginUser, form);
-
                 await API.post("/login", form)
                     .then(res => res.data)
                     .then(data => {
-                        console.log("message",data);
                         const updateLoginUser = {
                             ...loginUser[0],
                             isOnline: true,
@@ -76,7 +71,7 @@ export default function AdminAccess({ onLoginUser }) {
                         setForm({ email: "", password: "" });
                         onLoginUser(updateLoginUser);
                         localStorage.setItem('loginProfile', JSON.stringify(updateLoginUser));
-                        navigate("/profile/editProfile");
+                        navigate("/krato/details");
                     });
             } catch (err) {
                 setWrongpassword(true);
