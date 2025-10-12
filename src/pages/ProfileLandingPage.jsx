@@ -22,12 +22,10 @@ function SkillList({ skills }) {
   );
   // End of SkillList
 }
-function ResolvedIssues({ issues }) {
+function ResolvedIssues({ issues, setResolvedCount }) {
   const storedUserProfile = JSON.parse(localStorage.getItem('loginProfile'));
   const resolved = issues.filter(issue => issue.resolvedBy === storedUserProfile.username);
-  console.log("resolved", resolved);
-  console.log("storedUserProfile", storedUserProfile);
-  console.log("issues", issues);
+  setResolvedCount(resolved.length);
   if (resolved.length === 0) return <p className="text-gray-500 text-center">No issues resolved yet</p>;
   return (
     <div className="mt-6">
@@ -46,7 +44,7 @@ function ResolvedIssues({ issues }) {
                 Language: {issue.language} · Urgency: {issue.urgency}
               </p>
             </div>
-            {issue.solution && <div className="relative group inline-block">
+            {issue.solution && <div className="relative group inline-block m-auto">
               <svg class="w-5 h-5 text-blue-500 cursor-pointer" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="M12 14l2 2l4-4"></path><path d="M12 14v4"></path></svg>
 
               <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap 
@@ -64,7 +62,7 @@ function ResolvedIssues({ issues }) {
     </div>
   );
 }
-function IssueList({ issues, markClosed }) {
+function IssueList({ issues, markClosed, onDelete }) {
 
   const [isOpen, setIsOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState("");
@@ -102,6 +100,22 @@ function IssueList({ issues, markClosed }) {
   const handleChange = (e) => {
     setSelectedOption(e.target.value);
   };
+
+  const deleteIssue = async (issueId) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this item?");
+    if (!confirmDelete) return;
+    try {
+      const res = await API.delete(`/issues/${issueId}`);
+      alert(res.data.message || "Deleted successfully");
+      onDelete(issueId);
+      // Update UI after delete
+      // setItems(prev => prev.filter(item => item._id !== id));
+    } catch (error) {
+      console.error(error);
+      alert(error.response?.data?.message || "Error deleting item");
+    }
+  };
+
   if (!issues || issues.length === 0) return <p className="text-gray-500 text-center">No issue logged till</p>;
   return (
     <div className="mt-6">
@@ -115,7 +129,7 @@ function IssueList({ issues, markClosed }) {
             <h3 className="text-xl md:text-left font-semibold text-gray-800">{issue.title}</h3>
             <p className="text-sm text-gray-600">Language: {issue.language} · Urgency: {issue.urgency}</p>
           </div>
-          {issue.solution && <div className="relative group inline-block">
+          {issue.solution && <div className="relative group inline-block m-auto">
             <svg class="w-5 h-5 text-blue-500 cursor-pointer" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="M12 14l2 2l4-4"></path><path d="M12 14v4"></path></svg>
 
             <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 whitespace-nowrap 
@@ -124,7 +138,7 @@ function IssueList({ issues, markClosed }) {
               Solution: {issue.solution}
             </span>
           </div>}
-          <div className="flex gap-2 mt-4 justify-center sm:mt-0">
+          <div className="flex gap-2 mt-4 justify-between sm:mt-0">
             <div style={{ cursor: 'pointer' }} onClick={() => handleButtonClick(issue)} className="bg-teal-700 text-white px-4 py-2 rounded-xl hover:bg-teal-800">
               {issue.isOpen ? "Close Issue" : "ReOpen"}
             </div>
@@ -160,13 +174,17 @@ function IssueList({ issues, markClosed }) {
                 </div>
               </div>
             )}
-            <Link to={`/dashboard/livesession/${issue._id}`} className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700">
-              Session
-            </Link>
             <Link to={`/issue/${issue._id}`} className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700">
               Edit
             </Link>
+            <button onClick={() => deleteIssue(issue._id)} class="bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700">delete</button>
+            <Link to={`/dashboard/livesession/${issue._id}`} className="bg-gray-600 hidden md:block text-white px-4 py-2 rounded-xl hover:bg-gray-700">
+              Session
+            </Link>
           </div>
+          <Link to={`/dashboard/livesession/${issue._id}`} className="bg-gray-600 md:hidden text-white px-4 py-2 rounded-xl hover:bg-gray-700 mt-3">
+            Session
+          </Link>
         </div>
       ))}
     </div>)
@@ -179,9 +197,7 @@ export default function ProfileLandingPage({ loginUser }) {
   const [loading, setLoading] = useState(true);
   const [allIssues, setAllIssues] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
-  const storedUserProfile = JSON.parse(localStorage.getItem('loginProfile'));
-  const resolved = issues.filter(issue => issue.resolvedBy === storedUserProfile.username);
-
+  const [resolvedCount, setResolvedCount] = useState();
   // Badge icon/description mapping
   const badgeMap = {
     "Top Solver": { icon: "🏆", description: "Solved 10+ issues" },
@@ -241,7 +257,9 @@ export default function ProfileLandingPage({ loginUser }) {
     setIssues(prevIssues => prevIssues.map(i => i._id === updateIssues._id ? { ...i, isOpen: value } : i));
     handleSubmitNotification(updateIssues);
   };
-
+  const handleDeleteIssue = (id) => {
+    setIssues((prevIssues) => prevIssues.filter((issue) => issue._id !== id));
+  };
   return (
     <div className="bg-gray-100 p-6" style={{ minHeight: 'calc(100vh - 300px)' }}>
       <div className="max-w-4xl mx-auto">
@@ -283,7 +301,7 @@ export default function ProfileLandingPage({ loginUser }) {
                       <p className="text-gray-700">Total: {issues.length}</p>
                       <p className="text-gray-700">Open: {issues.filter(i => i.isOpen).length}</p>
                       <p className="text-gray-700">Closed: {issues.filter(i => !i.isOpen).length}</p>
-                      <p className="text-gray-700">Resolved:{resolved.length}</p>
+                      <p className="text-gray-700">Resolved:{resolvedCount}</p>
                     </div>
                     {/* Badges/Achievements */}
                     <div>
@@ -305,8 +323,8 @@ export default function ProfileLandingPage({ loginUser }) {
                     </div>
                   </div>
                   <SkillList skills={user && user.skills} />
-                  <IssueList issues={issues} markClosed={markClosed} />
-                  <ResolvedIssues issues={allIssues} />
+                  <IssueList issues={issues} markClosed={markClosed} onDelete={handleDeleteIssue} />
+                  <ResolvedIssues issues={allIssues} setResolvedCount={setResolvedCount} />
                 </div>
               ) : (
                 <div>
