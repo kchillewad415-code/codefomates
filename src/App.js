@@ -18,6 +18,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage';
 import NotFoundPage from './pages/NotFoundPage';
 import {io} from "socket.io-client";
 import {v4 as uuidv4} from "uuid";
+import AdminAccess from "./pages/AdminAccess";
 // Replace with your server URL
 const SOCKET_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 const socket = io(SOCKET_URL);
@@ -287,6 +288,7 @@ const animate=() => {
             <Route path="/profile/editProfile" element={<ProfilePage />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
+            <Route path="/admin" element={<AdminAccess onLoginUser={handleLoginUser}/>}/>
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </div>

@@ -95,6 +95,7 @@ export default function HomePage({ onlineUsers, animate }) {
             </motion.div>
           </div>
           <div className="max-w-4xl w-full mt-10">
+            { issues.length>0 &&
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
@@ -102,7 +103,7 @@ export default function HomePage({ onlineUsers, animate }) {
               className="bg-white shadow-xl rounded-2xl p-6 mb-6 flex flex-col"
             >
               <div className='mb-6 flex flex-row justify-between'>
-<h2 className='text-3xl font-bold text-blue-600 relative'>Issues</h2>
+                <h2 className='text-3xl font-bold text-blue-600 relative'>Issues</h2>
                           <div className="text-blue-600 rounded-xl hover:text-blue-800 transition">
                 <Link to="/dashboard">
                 <svg 
@@ -119,7 +120,7 @@ export default function HomePage({ onlineUsers, animate }) {
                           
             <Carousel items={issues} />
 
-            </motion.div>
+            </motion.div>}
           </div>
         </>
       )}

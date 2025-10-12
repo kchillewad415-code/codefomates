@@ -22,27 +22,29 @@ function SkillList({ skills }) {
   );
   // End of SkillList
 }
-function ResolvedIssues({ issues, setResolvedCount }) {
-  const storedUserProfile = JSON.parse(localStorage.getItem('loginProfile'));
-  const resolved = issues.filter(issue => issue.resolvedBy === storedUserProfile.username);
-  setResolvedCount(resolved.length);
-  if (resolved.length === 0) return <p className="text-gray-500 text-center">No issues resolved yet</p>;
+function ResolvedIssues({ loginUser }) {
+  
+  if (loginUser.resolvedHistory.length === 0) return <p className="text-gray-500 text-center">No issues resolved yet</p>;
   return (
     <div className="mt-6">
       <h3 className="text-xl font-bold text-blue-600 mb-4">Resolved Issues</h3>
       <div className="grid gap-4">
-        {resolved.map((issue) => (
+        {loginUser.resolvedHistory.map((issue) => (
           <div
             key={issue._id}
             className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between"
           >
             <div>
               <h3 className="text-xl md:text-left font-semibold text-gray-800">
-                {issue.title}
+                {issue.title ? issue.title : ""}
               </h3>
-              <p className="text-sm text-gray-600">
-                Language: {issue.language} · Urgency: {issue.urgency}
-              </p>
+               <p className="text-sm text-gray-600 mt-3">
+                        Language: {issue.language}<span className={
+                          issue.urgency === "now"
+                            ? "text-red-700 bg-red-100 border border-red-400 px-2 py-0.5 rounded ml-2"
+                            : "text-green-700 bg-green-100 border border-green-400 px-2 py-0.5 rounded ml-2"
+                        }>Urgency: {issue.urgency}</span>
+                      </p>
             </div>
             {issue.solution && <div className="relative group inline-block m-auto">
               <svg class="w-5 h-5 text-blue-500 cursor-pointer" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="M12 14l2 2l4-4"></path><path d="M12 14v4"></path></svg>
@@ -53,9 +55,9 @@ function ResolvedIssues({ issues, setResolvedCount }) {
                 Solution: {issue.solution}
               </span>
             </div>}
-            <div className="mt-4 sm:mt-0 bg-teal-700 text-white px-4 py-2 rounded-xl hover:bg-teal-800">
+            {issue.issueId && <div className="mt-4 sm:mt-0 bg-teal-700 text-white px-4 py-2 rounded-xl hover:bg-teal-800">
               <Link to={`livesession/${issue._id}`}>session</Link>
-            </div>
+            </div>}
           </div>
         ))}
       </div>
@@ -127,7 +129,13 @@ function IssueList({ issues, markClosed, onDelete }) {
         >
           <div>
             <h3 className="text-xl md:text-left font-semibold text-gray-800">{issue.title}</h3>
-            <p className="text-sm text-gray-600">Language: {issue.language} · Urgency: {issue.urgency}</p>
+             <p className="text-sm text-gray-600 mt-3">
+                        Language: {issue.language}<span className={
+                          issue.urgency === "now"
+                            ? "text-red-700 bg-red-100 border border-red-400 px-2 py-0.5 rounded ml-2"
+                            : "text-green-700 bg-green-100 border border-green-400 px-2 py-0.5 rounded ml-2"
+                        }>Urgency: {issue.urgency}</span>
+                      </p>
           </div>
           {issue.solution && <div className="relative group inline-block m-auto">
             <svg class="w-5 h-5 text-blue-500 cursor-pointer" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M8 2v4"></path><path d="M16 2v4"></path><path d="M4 10h16"></path><path d="M12 14l2 2l4-4"></path><path d="M12 14v4"></path></svg>
@@ -240,6 +248,16 @@ export default function ProfileLandingPage({ loginUser }) {
       console.log(err);
     }
   };
+
+    const updateUser = async (id, updateData) => {
+    try {
+      await API.put(`/users/${id}`, updateData);
+      alert("user Updated");
+
+    } catch (err) {
+      console.log(err);
+    }
+  };
   const handleSubmitNotification = async (updateIssues) => {
     const user = allUsers.find(u => u.username === updateIssues.resolvedBy);
     try {
@@ -255,6 +273,24 @@ export default function ProfileLandingPage({ loginUser }) {
     console.log("selectedOption", selectedOption);
     updateIssue(updateIssues._id, updateIssues);
     setIssues(prevIssues => prevIssues.map(i => i._id === updateIssues._id ? { ...i, isOpen: value } : i));
+    if(selectedOption) {
+      const user = allUsers.find(u => u.username === updateIssues.resolvedBy);
+      if(user) {
+        console.log(updateIssues);
+        const resolvedHistory = {
+          issueId: updateIssues._id,
+          title: updateIssues.title,
+          language: updateIssues.language,
+          urgency: updateIssues.urgency,
+          solution:updateIssues.solution
+        }
+
+        console.log("resolvedHIstory",resolvedHistory);
+        const updatedUser = {...user,resolvedHistory :[...user.resolvedHistory, resolvedHistory] };
+        updateUser(user._id, updatedUser);
+          console.log("updated user", updatedUser);
+      }
+    }
     handleSubmitNotification(updateIssues);
   };
   const handleDeleteIssue = (id) => {
@@ -301,7 +337,7 @@ export default function ProfileLandingPage({ loginUser }) {
                       <p className="text-gray-700">Total: {issues.length}</p>
                       <p className="text-gray-700">Open: {issues.filter(i => i.isOpen).length}</p>
                       <p className="text-gray-700">Closed: {issues.filter(i => !i.isOpen).length}</p>
-                      <p className="text-gray-700">Resolved:{resolvedCount}</p>
+                      <p className="text-gray-700">Resolved:{loginUser.resolvedHistory.length}</p>
                     </div>
                     {/* Badges/Achievements */}
                     <div>
@@ -324,7 +360,7 @@ export default function ProfileLandingPage({ loginUser }) {
                   </div>
                   <SkillList skills={user && user.skills} />
                   <IssueList issues={issues} markClosed={markClosed} onDelete={handleDeleteIssue} />
-                  <ResolvedIssues issues={allIssues} setResolvedCount={setResolvedCount} />
+                  <ResolvedIssues loginUser={loginUser} />
                 </div>
               ) : (
                 <div>
