@@ -280,6 +280,7 @@ const animate=() => {
               loginUserId={loggedUser._id}
             />} />
             <Route path="/dashboard/livesession/:roomId" element={<LiveSession user={loggedUser} />} />
+            <Route path="/issue/:issueId" element={<IssueForm loginUserId={loggedUser._id}/>}/>
             <Route path="/profile" element={<ProfileLandingPage loginUser={loggedUser} />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<ContactPage />} />

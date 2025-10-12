@@ -42,7 +42,7 @@ export default function ContactPage() {
       <div className="max-w-3xl mx-auto bg-white shadow-xl rounded-2xl p-6">
         <h2 className="text-3xl font-bold text-blue-600 mb-4">Contact Us</h2>
         <p className="text-gray-700 text-lg mb-6">
-          Have questions, feedback, or partnership ideas? Reach out to us anytime.
+          Have questions, feedback or any idea? Reach out to us anytime.
         </p>
         <form className="space-y-4" onSubmit={handleSubmit}>
           <input

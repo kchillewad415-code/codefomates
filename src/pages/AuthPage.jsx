@@ -34,6 +34,18 @@ export default function AuthPage({ onLoginUser }) {
     fetchUsers();
   }, []);
 
+
+  useEffect(()=>{
+    const user = localStorage.getItem("loginProfile");
+
+    if(user){
+      navigate("/");
+    }
+    
+  },[]);
+
+
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };

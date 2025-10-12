@@ -9,9 +9,10 @@ export default function Dashboard() {
   const [showSkillFilter, setShowSkillFilter] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10); // You can adjust as needed
-  const techOptions = [
-    "JavaScript", "Python", "Java", "C++", "React", "Node.js", "TypeScript", "HTML", "CSS", "SQL", "Go", "Ruby", "PHP", "Swift", "Kotlin", "Rust", "Dart", "Angular", "Vue.js", ".NET", "Spring", "Express", "MongoDB", "Firebase", "GraphQL"
-  ];
+  // const techOptions = [
+  //   "JavaScript", "Python", "Java", "C++", "React", "Node.js", "TypeScript", "HTML", "CSS", "SQL", "Go", "Ruby", "PHP", "Swift", "Kotlin", "Rust", "Dart", "Angular", "Vue.js", ".NET", "Spring", "Express", "MongoDB", "Firebase", "GraphQL"
+  // ];
+  const [techOptions, setTechOptions] = useState([]);
   const urgencyOptions = ["Now", "Later"];
   const [selectedTech, setSelectedTech] = useState("");
   const [urgencyFilter, setUrgencyFilter] = useState("");
@@ -29,6 +30,9 @@ export default function Dashboard() {
           const resIssues = res.data.filter(item => item.isOpen === true);
           setIssues(resIssues);
           setLoading(false);
+          setTechOptions([...new Set(res.data.map(issue => issue.language))].sort((a, b) =>
+            a.localeCompare(b, undefined, { sensitivity: "base" })
+          ));
         })
         .catch(err => {
           setLoading(false);
@@ -137,10 +141,29 @@ export default function Dashboard() {
       setGoToPage("");
     }
   };
+  useEffect(() => {
+    if (showSkillFilter) {
+      setTechOptions([...new Set(filteredIssues.map(issue => issue.language))].sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: "base" })
+      ));
+    }
+    else {
+      setTechOptions([...new Set(issues.map(issue => issue.language))].sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: "base" })
+      ));
 
+    }
+  }, [showSkillFilter]);
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [currentPage]);
+
+  const removeAllFilters = () => {
+    setFilter("");
+    setUrgencyFilter("");
+    setShowSkillFilter(false);
+    setSelectedTech("");
+  }
   return (
     <div className="bg-gray-100 p-6" style={{ minHeight: 'calc(100vh - 300px)' }}>
       <div className="max-w-4xl mx-auto">
@@ -177,13 +200,19 @@ export default function Dashboard() {
             </select>
           </div>
           {loggedUser && userSkills.length > 0 && (
-            <button
-              className={`px-4 py-2 rounded-xl text-white ${showSkillFilter ? "bg-blue-700" : "bg-blue-600"} hover:bg-blue-800 transition`}
-              onClick={() => setShowSkillFilter(f => !f)}
-            >
-              {showSkillFilter ? "Show All Issues" : "Show Only My Skill Issues"}
-            </button>
+            <div className="w-full max-w-4xl flex flex-col md:flex-row justify-between">
+              <button
+                className={`px-4 py-2 rounded-xl text-white w-full ${showSkillFilter ? "bg-blue-700" : "bg-blue-600"} hover:bg-blue-800 transition`}
+                onClick={() => setShowSkillFilter(f => !f)}
+              >
+                {showSkillFilter ? "Show All Issues" : "Show Only My Skill Issues"}
+              </button>
+              {(filter || selectedTech || showSkillFilter || urgencyFilter) &&
+                <button className="px-4 py-2 rounded-xl text-white bg-blue-600 hover:bg-blue-800 transition md:w-[210px] mt-3 md:mt-0 md:ml-2" onClick={removeAllFilters}>remove all filters</button>
+              }
+            </div>
           )}
+
         </div>
         {loading ? (
           <div className="flex flex-col items-center justify-center h-40">
@@ -215,7 +244,7 @@ export default function Dashboard() {
                     className="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div>
-                      <h3 className="text-xl font-semibold text-left text-gray-800">
+                      <h3 className="text-xl font-semibold md:text-left text-gray-800">
                         {issue.title}
                       </h3>
                       <p className="text-sm text-gray-600 mt-3">

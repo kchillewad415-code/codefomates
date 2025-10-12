@@ -2,34 +2,57 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 
 const CardGrid = ({ items }) => {
-    const [displayItems, setDisplayItems] = useState([]);
+const [displayItems, setDisplayItems] = useState([]);
+  const [layout, setLayout] = useState("");
 
-    // Function to pick N random unique items
-    const getRandomItems = (arr, n) => {
-        const shuffled = [...arr].sort(() => 0.5 - Math.random());
-        return shuffled.slice(0, n);
+  // Utility: pick N random unique items
+  const getRandomItems = (arr, n) => {
+    const shuffled = [...arr].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, n);
+  };
+
+  // Decide layout (mobile/tablet/desktop)
+  const getLayoutInfo = () => {
+    const width = window.innerWidth;
+    if (width < 640) return { layout: "mobile", count: 3 };
+    if (width < 1024) return { layout: "tablet", count: 4 };
+    return { layout: "desktop", count: 6 };
+  };
+
+  const updateDisplayItems = () => {
+    const { layout: newLayout, count } = getLayoutInfo();
+    setLayout(newLayout);
+    setDisplayItems(getRandomItems(items, count));
+  };
+
+  useEffect(() => {
+    // Set initial layout
+    updateDisplayItems();
+
+    // ✅ Debounce resize event
+    let resizeTimer;
+    const handleResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        const { layout: newLayout } = getLayoutInfo();
+        if (layout !== newLayout) updateDisplayItems();
+      }, 200);
     };
 
-    // Update display items based on screen width
-    const updateDisplayItems = () => {
-        const width = window.innerWidth;
-        if (width < 640) {
-            // mobile → 1 item
-            setDisplayItems(getRandomItems(items, 3));
-        } else if (width < 1024) {
-            // tablet → 2 items
-            setDisplayItems(getRandomItems(items, 4));
-        } else {
-            // desktop → 3 items
-            setDisplayItems(getRandomItems(items, 6));
-        }
-    };
+    window.addEventListener("resize", handleResize);
 
-    useEffect(() => {
-        updateDisplayItems();
-        window.addEventListener("resize", updateDisplayItems);
-        return () => window.removeEventListener("resize", updateDisplayItems);
-    }, [items]);
+    // ✅ Shuffle automatically every 5 seconds
+    const shuffleInterval = setInterval(() => {
+      const { count } = getLayoutInfo();
+      setDisplayItems(getRandomItems(items, count));
+    }, 5000); // 5 seconds (you can make it 4000 for 4s)
+
+    return () => {
+      clearTimeout(resizeTimer);
+      window.removeEventListener("resize", handleResize);
+      clearInterval(shuffleInterval);
+    };
+  }, [items, layout]);
 
     return (
         <div className="grid gap-4 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">

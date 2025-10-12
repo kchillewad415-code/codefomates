@@ -1,11 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useState } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import API from "../api";
 
 export default function IssueForm({ loginUserId }) {
+  const { issueId } = useParams();
   const navigate = useNavigate();
   const [selectedFile, setSelectedFile] = useState(null);
+  const [resIssueFile, setResIssueFile] = useState(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+    const techOptions = [
+    "JavaScript", "Python", "Java", "C++", "React", "Node.js", "TypeScript", "HTML", "CSS", "SQL", "Go", "Ruby", "PHP", "Swift", "Kotlin", "Rust", "Dart", "Angular", "Vue.js", ".NET", "Spring", "Express", "MongoDB", "Firebase", "GraphQL"
+  ];
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -36,12 +42,59 @@ export default function IssueForm({ loginUserId }) {
       urgency: "now",
     });
   };
+  const fetchIssues = async () => {
+    API.get("/issues")
+      .then(res => {
+        const resIssue = res.data.filter(item => item._id === issueId)[0];
+        console.log("issue",resIssue);
+        const language = techOptions.filter((l)=>l==resIssue.language);
+        console.log(language);
+        setForm({
+          title: resIssue.title,
+          description: resIssue.description,
+          language: language.length ==0 ?  "custom" : resIssue.language,
+          customLanguage: resIssue.language,
+          urgency: resIssue.urgency,
+        });
+        console.log("file", resIssue.file);
+        if(resIssue.file) setResIssueFile(resIssue.file);
+        setIsInitialLoad(false);
+      })
+      .catch(err => {
+        setIsInitialLoad(false);
+        console.log(err);
+      });
+  };
+  useEffect(() => {
+      if(issueId) {
+      console.log(issueId);
+      fetchIssues();
+      }
+      else {
+            setForm({
+      title: "",
+      description: "",
+      language: "",
+      customLanguage: "",
+      urgency: "now",
+    });
+      }
+  }, [issueId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
+  const updateIssue = async (updateIssue) => {
+    console.log("updated issue",updateIssue);
+    try {
+      await API.put(`/issues/${issueId}`, updateIssue);
+      setShowSuccessPopup(true);
 
+    } catch (err) {
+      console.log(err);
+    }
+  };
   const handleSubmit = (e) => {
     e.preventDefault();
     const finalLanguage = form.language === "custom" ? form.customLanguage : form.language;
@@ -54,7 +107,11 @@ export default function IssueForm({ loginUserId }) {
       userid: loginUserId,
     };
     delete issueData.customLanguage;
-    submitIssue(issueData);
+    if(issueId){
+      updateIssue(issueData);
+    }else {
+      submitIssue(issueData);
+    }
   };
 
   const [showPopup, setShowPopup] = useState(!loginUserId);
@@ -105,11 +162,11 @@ export default function IssueForm({ loginUserId }) {
       {/* Always show the form */}
       <form
         onSubmit={handleSubmit}
-        className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-xl space-y-4"
+        className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-xl space-y-4 max-h-fit"
         style={{ zIndex: 10 }}
       >
         <h2 className="text-2xl font-bold text-center text-blue-600 mb-4">
-          Submit a Coding Issue
+          {issueId ? "Update" : "Submit"} a Coding Issue
         </h2>
         <input
           type="text"
@@ -138,31 +195,9 @@ export default function IssueForm({ loginUserId }) {
             required
           >
             <option value="">Select Language/Tech</option>
-            <option value="JavaScript">JavaScript</option>
-            <option value="Python">Python</option>
-            <option value="Java">Java</option>
-            <option value="C++">C++</option>
-            <option value="React">React</option>
-            <option value="Node.js">Node.js</option>
-            <option value="TypeScript">TypeScript</option>
-            <option value="HTML">HTML</option>
-            <option value="CSS">CSS</option>
-            <option value="SQL">SQL</option>
-            <option value="Go">Go</option>
-            <option value="Ruby">Ruby</option>
-            <option value="PHP">PHP</option>
-            <option value="Swift">Swift</option>
-            <option value="Kotlin">Kotlin</option>
-            <option value="Rust">Rust</option>
-            <option value="Dart">Dart</option>
-            <option value="Angular">Angular</option>
-            <option value="Vue.js">Vue.js</option>
-            <option value=".NET">.NET</option>
-            <option value="Spring">Spring</option>
-            <option value="Express">Express</option>
-            <option value="MongoDB">MongoDB</option>
-            <option value="Firebase">Firebase</option>
-            <option value="GraphQL">GraphQL</option>
+            {techOptions.map(opt => (
+                <option key={opt} value={opt}>{opt}</option>
+              ))}
             <option value="custom">Other (Type below)</option>
           </select>
           {form.language === "custom" && (
@@ -215,7 +250,7 @@ export default function IssueForm({ loginUserId }) {
           type="submit"
           className="w-full bg-blue-600 text-white py-2 rounded-xl hover:bg-blue-700"
         >
-          Submit Issue
+          {issueId ? "Update Issue" : "Submit Issue"}
         </button>
       </form>
     </div>

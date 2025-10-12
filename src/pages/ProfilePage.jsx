@@ -30,6 +30,7 @@ export default function ProfilePage() {
         setLinkedin(user.linkedin || "");
         setGithub(user.github || "");
         setBadges(user.badges || []);
+        setSkills(user.skills || [])
       }
       setLoading(false);
     };
@@ -52,8 +53,7 @@ export default function ProfilePage() {
   };
   const updateSkill = () => {
     // Merge old and new skills into a flat array
-    const oldSkills = Array.isArray(user.skills) ? user.skills : [];
-    const allSkills = Array.from(new Set([...oldSkills, ...skills]));
+    const allSkills = Array.from(new Set([ ...skills]));
     console.log("user", user);
     const updateLoginUser = {
       ...user,
@@ -93,11 +93,7 @@ export default function ProfilePage() {
           </div>
         ) : (
           <>
-            <h2 className="text-3xl font-bold text-blue-600 mb-4">Your Profile</h2>
-            <h3>
-              {user?.username}
-              {user?.email}
-            </h3>
+            <h2 className="text-3xl font-bold text-blue-600 mb-4">Your Profile <span className="text-orange-600">({user?.username})</span></h2>
             {/* Editable Bio/About Section */}
             <div className="mb-4">
               <label className="block text-lg font-medium mb-1">Bio/About</label>
@@ -186,7 +182,7 @@ export default function ProfilePage() {
                   autoComplete="off"
                 />
                 {showSuggestions && filteredSuggestions.length > 0 && (
-                  <div className="absolute left-0 top-full mt-1 w-full bg-white border border-gray-300 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
+                  <div className="absolute left-0 bottom-full mt-1 w-full bg-white border border-gray-300 rounded-xl shadow-lg z-10 max-h-48 overflow-y-auto">
                     {filteredSuggestions.map((option, idx) => (
                       <div
                         key={option}

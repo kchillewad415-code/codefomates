@@ -55,9 +55,9 @@ export default function HomePage({ onlineUsers, animate }) {
         </div>
       ) : (
         <>
-          <section className="text-center mb-4">
-            <p className="text-gray-600">
-              <strong>{issues.length}</strong> developers currently need help · <strong><span className={animate ? "count animate" : "count"}>{onlineUsers}</span></strong> solvers online
+          <section className="w-full max-w-4xl text-center mb-4">
+            <p className="w-full text-gray-600 flex flex-col md:flex-row justify-around">
+              <p><strong>{issues.length}</strong> {issues.length<=1 ? "developer" : "developers"} currently need help</p><p><strong><span className={animate ? "count animate" : "count"}>{onlineUsers}</span></strong> {onlineUsers<=1 ? "solver" : "solvers"} online</p>
             </p>
           </section>
 
@@ -95,8 +95,31 @@ export default function HomePage({ onlineUsers, animate }) {
             </motion.div>
           </div>
           <div className="max-w-4xl w-full mt-10">
-            <h2 className='text-3xl font-bold text-blue-600 mb-6 relative'>Issues</h2>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="bg-white shadow-xl rounded-2xl p-6 mb-6 flex flex-col"
+            >
+              <div className='mb-6 flex flex-row justify-between'>
+<h2 className='text-3xl font-bold text-blue-600 relative'>Issues</h2>
+                          <div className="text-blue-600 rounded-xl hover:text-blue-800 transition">
+                <Link to="/dashboard">
+                <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                viewBox="0 0 640 640" 
+                className="w-10 h-10"
+                fill="currentColor">
+                <path d="M320 576C461.4 576 576 461.4 576 320C576 178.6 461.4 64 320 64C178.6 64 64 178.6 64 320C64 461.4 178.6 576 320 576zM361 417C351.6 426.4 336.4 426.4 327.1 417C317.8 407.6 317.7 392.4 327.1 383.1L366.1 344.1L216 344.1C202.7 344.1 192 333.4 192 320.1C192 306.8 202.7 296.1 216 296.1L366.1 296.1L327.1 257.1C317.7 247.7 317.7 232.5 327.1 223.2C336.5 213.9 351.7 213.8 361 223.2L441 303.2C450.4 312.6 450.4 327.8 441 337.1L361 417.1z"/>
+                </svg>
+                </Link>
+              </div>
+
+              </div>
+                          
             <Carousel items={issues} />
+
+            </motion.div>
           </div>
         </>
       )}
