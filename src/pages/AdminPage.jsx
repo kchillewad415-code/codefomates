@@ -162,11 +162,11 @@ function UsersList({ users, onDelete }) {
                 >
                     <div>
                         <h3 className="text-xl md:text-left font-semibold text-gray-800">{user.username}</h3>
-                        <p className="text-sm text-gray-600 mt-3">
-                            Username: {user.email}<span className={
+                        <p className="text-sm text-gray-600 mt-3 flex flex-col md:flex-row">
+                            <span><strong>Email: {user.email}</strong></span><span className={
                                 user.isOnline
-                                    ? "text-green-700 bg-green-100 border border-green-400 px-2 py-0.5 rounded ml-2"
-                                    : "text-red-700 bg-red-100 border border-red-400 px-2 py-0.5 rounded ml-2"
+                                    ? "text-green-700 bg-green-100 border border-green-400 px-2 py-0.5 rounded ml-2 mt-2 md:mt-0"
+                                    : "text-red-700 bg-red-100 border border-red-400 px-2 py-0.5 rounded ml-2 mt-2 md:mt-0"
                             }>Online: {user.isOnline ? "Yes" : "No"}</span>
                         </p>
                     </div>
