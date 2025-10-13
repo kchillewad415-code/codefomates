@@ -179,6 +179,8 @@ const initPeerConnection = () => {
   peerRef.current = pc;
 
   pc.ontrack = (event) => {
+    setRemoteScreenSharing(remoteScreenSharing);
+    setIsScreenSharing(isScreenSharing);
     if (screenShareVideoRef.current) {
       const newStream = new MediaStream();
       pc.getReceivers().forEach(r => {
