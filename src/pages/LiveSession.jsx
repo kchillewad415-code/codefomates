@@ -202,7 +202,7 @@ export default function LiveSession({ user }) {
   };
   // Helper: create and send offer (used when caller starts)
   const createAndSendOffer = async () => {
-    if (!peerRef.current || !isOfferer) return;
+    if (!peerRef.current) return;
     try {
       if (peerRef.current.signalingState !== 'stable') return;
       const offer = await peerRef.current.createOffer();
@@ -423,12 +423,12 @@ export default function LiveSession({ user }) {
       <div ref={videoSectionRef} className={`flex-1 bg-white rounded-xl shadow p-4 flex flex-col justify-center items-center ${showVideoSection ? '' : 'hidden'} md:block`}>
         <div className="flex items-center gap-2 mb-2 text-gray-700"><Video className="w-5 h-5" /> Video Call</div>
 
-        <div className="w-full flex flex-row gap-2 bg-black rounded-xl overflow-hidden" style={{ height: isScreenSharing ? 'calc(100% - 75px)' : '150px', position: "relative" }}>
+        <div className="w-full flex flex-row gap-2 bg-black rounded-xl overflow-hidden" style={{ height: isScreenSharing || remoteScreenSharing? 'calc(100% - 75px)' : '150px', position: "relative" }}>
           {(isScreenSharing || remoteScreenSharing) ? (
             <>
               <div className="w-full h-full relative bg-gray-900 rounded-xl">
                 <video ref={screenShareVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
-                {isScreenSharing && (
+                {(isScreenSharing || remoteScreenSharing) && (
                   <>
                     <button className="absolute top-2 right-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900" onClick={stopScreenShare}>Stop Sharing</button>
                     <button
