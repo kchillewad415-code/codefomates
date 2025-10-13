@@ -20,109 +20,103 @@ export default function LiveSession({ user }) {
   const [screenStream, setScreenStream] = useState(null);
   const [issueFile, setIssueFile] = useState(null);
   const [issue, setIssue] = useState(null);
-  const [isOfferer, setIsOfferer] = useState(false);
+  const [solutionProvided, setSolutionProvided] = useState("");
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const [mobileScreenShareError, setMobileScreenShareError] = useState("");
 
-  // Removed videoSectionRef
   const messagesEndRef = useRef(null);
-  const socketRef = useRef();
-  const peerRef = useRef();
+  const socketRef = useRef(null);
+  const peerRef = useRef(null);
   const screenShareVideoRef = useRef(null);
-
-
+  const isNegotiatingRef = useRef(false);
 
   const RTC_CONFIG = {
     iceServers: [
       { urls: "stun:stun.l.google.com:19302" },
-      // If you have a TURN server, add it here:
-      // { urls: "turn:your.turn.server:3478", username: "user", credential: "pass" }
     ]
   };
 
+  // Auto-scroll chat
   useEffect(() => {
-  if (!peerRef.current) {
-    initPeerConnection();
-  }
-  // eslint-disable-next-line
-}, []);
-  // Scroll to bottom when messages update
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
+    if (messagesEndRef.current) messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Load initial data and setup socket
+  // Initialize socket, fetch data and setup listeners
   useEffect(() => {
     const name = user?.username || "Anonymous";
     const mail = user?.email || "";
     setUsername(name);
     setEmail(mail);
 
-    // Fetch chat history
     setLoading(true);
-    axios.get(`${API_URL}/chat/${roomId}`).then(res => {
-      setMessages(res.data.map(msg => ({
-        id: msg._id,
-        sender: msg.sender,
-        text: msg.message,
-        time: msg.time
-      })));
-      setLoading(false);
-    }).catch(() => setLoading(false));
+    axios.get(`${API_URL}/chat/${roomId}`)
+      .then(res => {
+        setMessages(res.data.map(msg => ({ id: msg._id, sender: msg.sender, text: msg.message, time: msg.time })));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
 
-    // Fetch issue file
-    axios.get(`${API_URL}/issues/${roomId}`).then(res => {
-      if (res.data?.solution) setSolutionProvided(res.data.solution);
-      if (res.data) setIssue(res.data);
-      if (res.data?.file?.filename) setIssueFile(res.data.file.filename);
-      else setIssueFile(null);
-    }).catch(() => setIssueFile(null));
+    axios.get(`${API_URL}/issues/${roomId}`)
+      .then(res => {
+        if (res.data?.solution) setSolutionProvided(res.data.solution);
+        if (res.data) setIssue(res.data);
+        if (res.data?.file?.filename) setIssueFile(res.data.file.filename);
+        else setIssueFile(null);
+      })
+      .catch(() => setIssueFile(null));
 
     // Setup socket
     socketRef.current = io(SOCKET_URL);
     socketRef.current.emit('joinRoom', roomId, name);
 
-    // --- Socket event listeners ---
-    const handleScreenShareLayout = (active) => {
-      setRemoteScreenSharing(active);
-    };
+    // Socket handlers
+    const handleScreenShareLayout = (active) => setRemoteScreenSharing(active);
     const handleChatMessage = (msg) => {
       setMessages(prev => [...prev, { id: Date.now(), sender: msg.sender, text: msg.message, time: msg.time }]);
     };
-    const handleOffer = async (offer) => {
-      // Always close and recreate peer connection on remote offer
+    const handleOffer = async ({ offer }) => {
+      // Recreate peer to ensure m-line order consistency
       if (peerRef.current) {
-        try { peerRef.current.close(); } catch (e) { }
+        try { peerRef.current.close(); } catch (e) {}
         peerRef.current = null;
       }
       initPeerConnection();
-      if (peerRef.current.signalingState !== 'stable') {
-        await peerRef.current.setLocalDescription({ type: 'rollback' });
+
+      try {
+        if (peerRef.current.signalingState !== 'stable') {
+          await peerRef.current.setLocalDescription({ type: 'rollback' });
+        }
+      } catch (e) { /* best-effort rollback */ }
+
+      try {
+        await peerRef.current.setRemoteDescription(new RTCSessionDescription(offer));
+        const answer = await peerRef.current.createAnswer();
+        await peerRef.current.setLocalDescription(answer);
+        socketRef.current.emit('answer', { roomId, answer: peerRef.current.localDescription });
+      } catch (err) {
+        console.error("handleOffer error:", err);
       }
-      await peerRef.current.setRemoteDescription(offer);
-      const answer = await peerRef.current.createAnswer();
-      await peerRef.current.setLocalDescription(answer);
-      socketRef.current.emit('answer', { roomId, answer });
     };
-    const handleAnswer = async (answer) => {
-      if (peerRef.current) await peerRef.current.setRemoteDescription(answer);
+    const handleAnswer = async ({ answer }) => {
+      try {
+        if (peerRef.current) await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+      } catch (e) {
+        console.error("handleAnswer error:", e);
+      }
     };
-    const handleIceCandidate = async (candidate) => {
-      try { if (peerRef.current) await peerRef.current.addIceCandidate(candidate); }
-      catch (e) { console.error(e); }
+    const handleIceCandidate = async ({ candidate }) => {
+      try { if (peerRef.current && candidate) await peerRef.current.addIceCandidate(candidate); }
+      catch (e) { console.error("addIceCandidate error:", e); }
     };
     const handleScreenShareStopped = () => {
+      // Remote stopped: clear remote video and recreate peer for future sessions
       setRemoteScreenSharing(false);
-      if (screenShareVideoRef.current) {
-        screenShareVideoRef.current.srcObject = null;
-      }
-      // Always close and recreate peer connection on remote stop
-      if (peerRef.current) {
-        try { peerRef.current.close(); } catch (e) { }
-        peerRef.current = null;
-      }
+      if (screenShareVideoRef.current) screenShareVideoRef.current.srcObject = null;
+      if (peerRef.current) { try { peerRef.current.close(); } catch (e) {} peerRef.current = null; }
+    };
+    const handleForceClearVideo = () => {
+      if (screenShareVideoRef.current) screenShareVideoRef.current.srcObject = null;
+      setRemoteScreenSharing(false);
     };
 
     socketRef.current.on('screenShareLayout', handleScreenShareLayout);
@@ -131,20 +125,23 @@ export default function LiveSession({ user }) {
     socketRef.current.on('answer', handleAnswer);
     socketRef.current.on('ice-candidate', handleIceCandidate);
     socketRef.current.on('screenShareStopped', handleScreenShareStopped);
+    socketRef.current.on('forceClearVideo', handleForceClearVideo);
 
     return () => {
+      if (!socketRef.current) return;
       socketRef.current.off('screenShareLayout', handleScreenShareLayout);
       socketRef.current.off('chatMessage', handleChatMessage);
       socketRef.current.off('offer', handleOffer);
       socketRef.current.off('answer', handleAnswer);
       socketRef.current.off('ice-candidate', handleIceCandidate);
       socketRef.current.off('screenShareStopped', handleScreenShareStopped);
+      socketRef.current.off('forceClearVideo', handleForceClearVideo);
       socketRef.current.disconnect();
-      if (peerRef.current) peerRef.current.close();
+      if (peerRef.current) { try { peerRef.current.close(); } catch(e) {} peerRef.current = null; }
     };
   }, [user, roomId]);
 
-  // Send chat message
+  // Send chat
   const sendMessage = (e) => {
     e.preventDefault();
     if (!input.trim()) return;
@@ -152,182 +149,174 @@ export default function LiveSession({ user }) {
     setInput("");
   };
 
-  const peer = new RTCPeerConnection({
-    iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-  });
-const isNegotiatingRef = useRef(false);
-
-const initPeerConnection = () => {
-  if (peerRef.current) {
-    try { peerRef.current.close(); } catch {}
-    peerRef.current = null;
-  }
-
-  const pc = new RTCPeerConnection(RTC_CONFIG);
-  peerRef.current = pc;
-
-  pc.ontrack = (event) => {
-    const remoteStream = new MediaStream();
-    event.streams[0].getTracks().forEach(t => remoteStream.addTrack(t));
-    if (screenShareVideoRef.current) {
-      screenShareVideoRef.current.srcObject = remoteStream;
-    }
-  };
-
-  pc.onicecandidate = (event) => {
-    if (event.candidate) {
-      socketRef.current.emit('ice-candidate', { roomId, candidate: event.candidate });
-    }
-  };
-pc.onnegotiationneeded = async () => {
-    if (isNegotiatingRef.current) return; // skip redundant negotiations
-    isNegotiatingRef.current = true;
-    try {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      socketRef.current.emit('offer', { roomId, offer });
-    } catch (err) {
-      console.error("Negotiation error:", err);
-    } finally {
-      isNegotiatingRef.current = false;
-    }
-  };
-
-  return pc;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  // Helper: create and send offer (used when caller starts)
-const createAndSendOffer = async () => {
-  if (!peerRef.current) return;
-  if (peerRef.current.signalingState !== "stable") {
-    console.warn("Skipping renegotiation: signalingState not stable");
-    return;
-  }
-  const offer = await peerRef.current.createOffer();
-  await peerRef.current.setLocalDescription(offer);
-  socketRef.current.emit("offer", { roomId, offer });
-};
-  // Video/camera logic removed
-
-  // Share screen (with audio)
-const shareScreen = async () => {
-  if (isMobile) {
-    setMobileScreenShareError("Screen sharing is not supported on mobile browsers.");
-    return;
-  }
-  try {
-    // Always create a new peer connection for each new share
+  // Initialize RTC peer (always fresh)
+  const initPeerConnection = () => {
     if (peerRef.current) {
-      try { peerRef.current.close(); } catch (e) { }
+      try { peerRef.current.close(); } catch (e) {}
       peerRef.current = null;
     }
-    initPeerConnection();
-    const sStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-    setIsScreenSharing(true);
-    setMobileScreenShareError("");
-    socketRef.current.emit('screenShareLayout', true);
-    setScreenStream(sStream);
-    if (screenShareVideoRef.current) {
-      screenShareVideoRef.current.srcObject = sStream;
-      screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(() => { });
+
+    const pc = new RTCPeerConnection(RTC_CONFIG);
+    peerRef.current = pc;
+
+    pc.ontrack = (event) => {
+      // Prefer event.streams if available (clean single-stream attach)
+      let remoteStream = null;
+      if (event.streams && event.streams[0]) {
+        remoteStream = event.streams[0];
+      } else {
+        remoteStream = new MediaStream();
+        event.receivers?.forEach(r => {
+          if (r.track) remoteStream.addTrack(r.track);
+        });
+      }
+      if (screenShareVideoRef.current) {
+        screenShareVideoRef.current.srcObject = remoteStream;
+        screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(() => {});
+      }
+    };
+
+    pc.onicecandidate = (evt) => {
+      if (evt.candidate) {
+        socketRef.current.emit('ice-candidate', { roomId, candidate: evt.candidate });
+      }
+    };
+
+    pc.onnegotiationneeded = async () => {
+      // prevent overlapping negotiation
+      if (isNegotiatingRef.current) return;
+      isNegotiatingRef.current = true;
+      try {
+        if (pc.signalingState !== "stable") {
+          // skip if not stable
+          return;
+        }
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        socketRef.current.emit('offer', { roomId, offer: pc.localDescription });
+      } catch (err) {
+        console.error("negotiation error:", err);
+      } finally {
+        isNegotiatingRef.current = false;
+      }
+    };
+
+    return pc;
+  };
+
+  // Helper: create/send offer when we manually want to start negotiation
+  const createAndSendOffer = async () => {
+    if (!peerRef.current) return;
+    if (peerRef.current.signalingState !== "stable") {
+      console.warn("Skipping createAndSendOffer: signalingState not stable");
+      return;
     }
-    // Add all tracks (video+audio) to peer connection
-    sStream.getTracks().forEach(track => {
-      peerRef.current.addTrack(track, sStream);
-    });
-    // Always renegotiate after adding tracks
-    await createAndSendOffer();
-    // When user stops sharing from browser UI:
-    sStream.getVideoTracks()[0].onended = () => stopScreenShare();
-  } catch (err) {
-    setMobileScreenShareError("Screen sharing failed. Your browser may not support it or permission was denied.");
-    setIsScreenSharing(false);
-    console.error("shareScreen error:", err);
-  }
-};
+    try {
+      const offer = await peerRef.current.createOffer();
+      await peerRef.current.setLocalDescription(offer);
+      socketRef.current.emit('offer', { roomId, offer: peerRef.current.localDescription });
+    } catch (err) {
+      console.error("createAndSendOffer error:", err);
+    }
+  };
+
+  // Share screen
+  const shareScreen = async () => {
+    if (isMobile) {
+      setMobileScreenShareError("Screen sharing is not supported on mobile browsers.");
+      return;
+    }
+    try {
+      // always recreate peer
+      if (peerRef.current) { try { peerRef.current.close(); } catch (e) {} peerRef.current = null; }
+      initPeerConnection();
+
+      const sStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      setIsScreenSharing(true);
+      setMobileScreenShareError("");
+      setScreenStream(sStream);
+      socketRef.current.emit('screenShareLayout', true);
+
+      if (screenShareVideoRef.current) {
+        screenShareVideoRef.current.srcObject = sStream;
+        screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(() => {});
+      }
+
+      // add tracks
+      sStream.getTracks().forEach(track => {
+        peerRef.current.addTrack(track, sStream);
+      });
+
+      // perform offer/negotiation
+      await createAndSendOffer();
+
+      // handle user pressing browser "Stop sharing" button
+      const vTrack = sStream.getVideoTracks()[0];
+      if (vTrack) vTrack.onended = () => stopScreenShare();
+    } catch (err) {
+      console.error("shareScreen error:", err);
+      setMobileScreenShareError("Screen sharing failed. Your browser may not support it or permission was denied.");
+      setIsScreenSharing(false);
+    }
+  };
 
   // Stop screen share
   const stopScreenShare = async () => {
     setIsScreenSharing(false);
     socketRef.current.emit('screenShareLayout', false);
-    socketRef.current.emit('screenShareStopped', { roomId }); // Notify remote to clear video
+    socketRef.current.emit('screenShareStopped', { roomId });
+
+    // clear local video element
     if (screenShareVideoRef.current?.srcObject) {
-      screenShareVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      try {
+        screenShareVideoRef.current.srcObject.getTracks().forEach(t => t.stop());
+      } catch (e) {}
       screenShareVideoRef.current.srcObject = null;
     }
+
     if (screenStream) {
-      screenStream.getTracks().forEach(track => track.stop());
+      try { screenStream.getTracks().forEach(t => t.stop()); } catch (e) {}
       setScreenStream(null);
     }
-    // Fully close and nullify the peer connection
+
+    // close peer fully
     if (peerRef.current) {
-      try { peerRef.current.close(); } catch (e) { }
+      try { peerRef.current.close(); } catch (e) {}
       peerRef.current = null;
     }
-    socketRef.current.emit('forceClearVideo', { roomId });
 
-    socketRef.current.on('forceClearVideo', () => {
-  if (screenShareVideoRef.current) {
-    screenShareVideoRef.current.srcObject = null;
-  }
-  setRemoteScreenSharing(false);
-});
+    // force remote clear as extra safety
+    socketRef.current.emit('forceClearVideo', { roomId });
   };
-  // Listen for remote screen share stopped event
+
+  // Listen for remote screen share stopped (redundant safety)
   useEffect(() => {
     if (!socketRef.current) return;
-    const handleScreenShareStopped = () => {
+    const onRemoteStopped = () => {
       setRemoteScreenSharing(false);
-      if (screenShareVideoRef.current) {
-        screenShareVideoRef.current.srcObject = null;
-      }
-      // Close and reset peer connection on remote as well
-      if (peerRef.current) {
-        try { peerRef.current.close(); } catch (e) { }
-        peerRef.current = null;
-      }
+      if (screenShareVideoRef.current) screenShareVideoRef.current.srcObject = null;
+      if (peerRef.current) { try { peerRef.current.close(); } catch (e) {} peerRef.current = null; }
     };
-    socketRef.current.on('screenShareStopped', handleScreenShareStopped);
-    return () => {
-      socketRef.current.off('screenShareStopped', handleScreenShareStopped);
-    };
+    socketRef.current.on('screenShareStopped', onRemoteStopped);
+    return () => socketRef.current?.off('screenShareStopped', onRemoteStopped);
   }, []);
-  const [solutionProvided, setSolutionProvided] = useState("");
-  const handleSolutionChange = (e) => {
-    setSolutionProvided(e.target.value);
-  }
+
+  const handleSolutionChange = (e) => setSolutionProvided(e.target.value);
   const handleSolutionSubmit = (e) => {
     e.preventDefault();
     if (!solutionProvided.trim()) return;
-
     const updateIssues = { ...issue, solution: solutionProvided };
     updateIssue(updateIssues._id, updateIssues);
   };
-
   const updateIssue = async (id, updateIssue) => {
     try {
-      const response = API.put(`/issues/${id}`, updateIssue);
+      await API.put(`/issues/${id}`, updateIssue);
       alert("Updated successfully!");
-    }
-    catch (err) {
+    } catch (err) {
       console.log(err);
     }
   };
+
   return (
     <div className="max-w-7xl mx-auto px-4 flex flex-col lg:flex-row gap-6">
       {/* Chat Section */}
@@ -336,19 +325,12 @@ const shareScreen = async () => {
           <span className="flex items-center gap-2">
             <MessageSquare className="w-5 h-5" /> Chat
           </span>
-          {/* Small video icon at the top right of chat */}
           <p><strong>{issue?.title ? `Issue:- ${issue.title}` : ''}</strong></p>
-          <button
-            className="p-1 md:hidden rounded-full bg-blue-100 hover:bg-blue-200"
-            onClick={() => {
-              setTimeout(() => {
-              }, 100); // Wait for section to appear
-            }}
-            aria-label="Show Video Section"
-          >
+          <button className="p-1 md:hidden rounded-full bg-blue-100 hover:bg-blue-200" aria-label="Show Video Section">
             <Video className="w-5 h-5 text-blue-600" />
           </button>
         </div>
+
         <div className="flex-1 overflow-y-auto space-y-2 mb-4 h-full">
           {loading ? (
             <div className="flex items-center justify-center h-full">
@@ -363,19 +345,12 @@ const shareScreen = async () => {
               {messages.map((msg) => {
                 const isOwn = msg.sender === username;
                 return (
-                  <div
-                    key={msg.id}
-                    className={`p-2 rounded-xl max-w-xs text-sm flex flex-col ${isOwn ? "bg-blue-100 items-end" : "bg-gray-200 items-start"
-                      }`}
-                    style={{ alignSelf: isOwn ? 'flex-end' : 'flex-start', marginLeft: isOwn ? 'auto' : 0, marginRight: isOwn ? 0 : 'auto', textAlign: 'left' }}
-                  >
+                  <div key={msg.id} className={`p-2 rounded-xl max-w-xs text-sm flex flex-col ${isOwn ? "bg-blue-100 items-end" : "bg-gray-200 items-start"}`} style={{ alignSelf: isOwn ? 'flex-end' : 'flex-start', marginLeft: isOwn ? 'auto' : 0, marginRight: isOwn ? 0 : 'auto', textAlign: 'left' }}>
                     <div style={{ textAlign: 'left', width: '100%', display: 'flex', alignItems: 'center', gap: '6px' }}>
                       <strong>{msg.sender}</strong>
                     </div>
                     <div style={{ textAlign: 'left', width: '100%' }}>{msg.text}</div>
-                    <span className="block w-full text-right text-xs text-gray-500">
-                      {msg.time ? new Date(msg.time).toLocaleTimeString() : ''}
-                    </span>
+                    <span className="block w-full text-right text-xs text-gray-500">{msg.time ? new Date(msg.time).toLocaleTimeString() : ''}</span>
                   </div>
                 );
               })}
@@ -383,21 +358,14 @@ const shareScreen = async () => {
             </>
           )}
         </div>
+
         <form onSubmit={sendMessage} className="flex gap-2">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message..."
-            className="flex-1 px-3 py-2 border rounded-xl"
-          />
-          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-xl">
-            Send
-          </button>
+          <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Type a message..." className="flex-1 px-3 py-2 border rounded-xl" />
+          <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-xl">Send</button>
         </form>
       </div>
 
-      {/* Screen Share Section Only */}
+      {/* Screen Share Section */}
       <div className="flex-1 bg-white rounded-xl shadow p-4 flex flex-col justify-center items-center">
         <div className="flex items-center gap-2 mb-2 text-gray-700"><Video className="w-5 h-5" /> Screen Share</div>
         <div className="w-full flex flex-row gap-2 bg-black rounded-xl overflow-hidden" style={{ height: isScreenSharing || remoteScreenSharing? 'calc(100% - 75px)' : '150px', position: "relative" }}>
@@ -406,70 +374,43 @@ const shareScreen = async () => {
             {(isScreenSharing || remoteScreenSharing) && (
               <>
                 <button className="absolute top-2 right-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900" onClick={stopScreenShare}>Stop Sharing</button>
-                <button
-                  className="absolute top-2 left-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900"
-                  onClick={() => {
-                    if (screenShareVideoRef.current) {
-                      if (screenShareVideoRef.current.requestFullscreen) {
-                        screenShareVideoRef.current.requestFullscreen();
-                      } else if (screenShareVideoRef.current.webkitRequestFullscreen) {
-                        screenShareVideoRef.current.webkitRequestFullscreen();
-                      } else if (screenShareVideoRef.current.msRequestFullscreen) {
-                        screenShareVideoRef.current.msRequestFullscreen();
-                      }
-                    }
-                  }}
-                >
-                  Fullscreen
-                </button>
+                <button className="absolute top-2 left-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900" onClick={() => {
+                  if (screenShareVideoRef.current) {
+                    if (screenShareVideoRef.current.requestFullscreen) screenShareVideoRef.current.requestFullscreen();
+                    else if (screenShareVideoRef.current.webkitRequestFullscreen) screenShareVideoRef.current.webkitRequestFullscreen();
+                    else if (screenShareVideoRef.current.msRequestFullscreen) screenShareVideoRef.current.msRequestFullscreen();
+                  }
+                }}>Fullscreen</button>
               </>
             )}
           </div>
         </div>
-        {/* Controls */}
+
         <div className="flex flex-wrap gap-2 mt-4">
-{!isScreenSharing && (
-  <button
-    onClick={shareScreen}
-    className={`bg-teal-700 text-white px-4 py-2 rounded-xl ${isMobile ? 'opacity-50 cursor-not-allowed' : ''}`}
-    disabled={isMobile}
-  >
-    Share Screen
-  </button>
-)}
-{mobileScreenShareError && (
-  <div className="text-red-600 text-sm w-full">{mobileScreenShareError}</div>
-)}          
-{issueFile && (
+          {!isScreenSharing && (
+            <button onClick={shareScreen} className={`bg-teal-700 text-white px-4 py-2 rounded-xl ${isMobile ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={isMobile}>Share Screen</button>
+          )}
+          {mobileScreenShareError && <div className="text-red-600 text-sm w-full">{mobileScreenShareError}</div>}
+          {issueFile && (
             <a href={`${API_URL}/uploads/${issueFile}`} target="_blank" rel="noopener noreferrer" className="bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 flex items-center justify-center" style={{ textDecoration: 'none' }}>
               View Attached File
             </a>
           )}
         </div>
+
         <div className="mt-4 text-gray-500 text-sm hidden md:block w-full">
           <form className="space-y-4" onSubmit={handleSolutionSubmit}>
             <label className="font-bold">Solution concluded:</label>
-            <input
-              type="text"
-              value={solutionProvided}
-              placeholder="Solution"
-              className="w-full px-4 py-2 border rounded-xl my-2"
-              required
-              onChange={handleSolutionChange} />
+            <input type="text" value={solutionProvided} placeholder="Solution" className="w-full px-4 py-2 border rounded-xl my-2" required onChange={handleSolutionChange} />
             <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded-xl ml-2">Submit Solution</button>
           </form>
         </div>
       </div>
+
       <div className="mt-4 text-gray-500 text-sm md:hidden">
         <form className="space-y-4" onSubmit={handleSolutionSubmit}>
           <label className="font-bold">Solution concluded:</label>
-          <input
-            type="text"
-            value={solutionProvided}
-            placeholder="Solution"
-            className="w-full px-4 py-2 border rounded-xl my-2"
-            required
-            onChange={handleSolutionChange} />
+          <input type="text" value={solutionProvided} placeholder="Solution" className="w-full px-4 py-2 border rounded-xl my-2" required onChange={handleSolutionChange} />
           <button type="submit" className="bg-green-600 text-white px-4 py-2 rounded-xl ml-2">Submit Solution</button>
         </form>
       </div>
