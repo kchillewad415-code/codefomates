@@ -82,11 +82,11 @@ export default function LiveSession({ user }) {
     socketRef.current.emit('joinRoom', roomId, name, (role) => {
       setIsOfferer(role === 'offerer');
     });
-  socketRef.current.on('chatMessage', (msg) => {
-    // Listen for remote screen share layout events
+    // Listen for remote screen share layout events (register ONCE, not inside chatMessage)
     socketRef.current.on('screenShareLayout', (active) => {
       setRemoteScreenSharing(active);
     });
+    socketRef.current.on('chatMessage', (msg) => {
       setMessages(prev => [...prev, { id: Date.now(), sender: msg.sender, text: msg.message, time: msg.time }]);
     });
 
@@ -147,18 +147,18 @@ export default function LiveSession({ user }) {
 
     // When remote track arrives, attach to correct remote video element
     pc.ontrack = (event) => {
-      // event.track.kind: 'video' or 'audio'
-      // event.track.label may help distinguish camera vs screen
+      // Always ensure the track is added to the correct video element
       if (event.track.kind === 'video') {
-        // Try to distinguish camera vs screen by label
-        if (event.track.label.toLowerCase().includes('screen')) {
+        // Try to distinguish camera vs screen by label, fallback to order if label is missing
+        const isScreen = event.track.label && event.track.label.toLowerCase().includes('screen');
+        if (isScreen) {
           // Screen share
           if (screenShareVideoRef.current) {
-            // If not already set, create a new MediaStream for this track
-            if (!screenShareVideoRef.current.srcObject || !(screenShareVideoRef.current.srcObject instanceof MediaStream)) {
-              screenShareVideoRef.current.srcObject = new MediaStream();
+            let ms = screenShareVideoRef.current.srcObject;
+            if (!ms || !(ms instanceof MediaStream)) {
+              ms = new MediaStream();
+              screenShareVideoRef.current.srcObject = ms;
             }
-            const ms = screenShareVideoRef.current.srcObject;
             if (!ms.getTracks().some(t => t.id === event.track.id)) {
               ms.addTrack(event.track);
             }
@@ -167,10 +167,11 @@ export default function LiveSession({ user }) {
         } else {
           // Camera
           if (remoteVideoRef.current) {
-            if (!remoteVideoRef.current.srcObject || !(remoteVideoRef.current.srcObject instanceof MediaStream)) {
-              remoteVideoRef.current.srcObject = new MediaStream();
+            let ms = remoteVideoRef.current.srcObject;
+            if (!ms || !(ms instanceof MediaStream)) {
+              ms = new MediaStream();
+              remoteVideoRef.current.srcObject = ms;
             }
-            const ms = remoteVideoRef.current.srcObject;
             if (!ms.getTracks().some(t => t.id === event.track.id)) {
               ms.addTrack(event.track);
             }
@@ -248,17 +249,26 @@ export default function LiveSession({ user }) {
   // Stop camera
   const endVideo = () => {
     setIsVideoStarted(false);
+    // Stop and remove local video track from peer connection, but do not close the connection
     if (localVideoRef.current?.srcObject) {
       localVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
       localVideoRef.current.srcObject = null;
     }
     if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
+      // Remove camera video track from peer connection
+      const senders = peerRef.current?.getSenders() || [];
+      cameraStream.getTracks().forEach(track => {
+        const sender = senders.find(s => s.track && s.track.id === track.id);
+        if (sender) {
+          try { peerRef.current.removeTrack(sender); } catch (e) { }
+        }
+        track.stop();
+      });
       setCameraStream(null);
-    }
-    if (peerRef.current) {
-      peerRef.current.close();
-      peerRef.current = null;
+      // Renegotiate after removing track
+      if (peerRef.current) {
+        createAndSendOffer();
+      }
     }
   };
 
