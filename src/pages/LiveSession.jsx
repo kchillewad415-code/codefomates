@@ -18,6 +18,7 @@ export default function LiveSession({ user }) {
   const [showVideoSection, setShowVideoSection] = useState(false);
   const [isVideoStarted, setIsVideoStarted] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [remoteScreenSharing, setRemoteScreenSharing] = useState(false);
   const [cameraStream, setCameraStream] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
   const [issueFile, setIssueFile] = useState(null);
@@ -81,7 +82,11 @@ export default function LiveSession({ user }) {
     socketRef.current.emit('joinRoom', roomId, name, (role) => {
       setIsOfferer(role === 'offerer');
     });
-    socketRef.current.on('chatMessage', (msg) => {
+  socketRef.current.on('chatMessage', (msg) => {
+    // Listen for remote screen share layout events
+    socketRef.current.on('screenShareLayout', (active) => {
+      setRemoteScreenSharing(active);
+    });
       setMessages(prev => [...prev, { id: Date.now(), sender: msg.sender, text: msg.message, time: msg.time }]);
     });
 
@@ -261,7 +266,9 @@ export default function LiveSession({ user }) {
   const shareScreen = async () => {
     try {
       const sStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
-      setIsScreenSharing(true);
+  setIsScreenSharing(true);
+  // Notify remote peer to update layout
+  socketRef.current.emit('screenShareLayout', true);
       setScreenStream(sStream);
       if (screenShareVideoRef.current) {
         screenShareVideoRef.current.srcObject = sStream;
@@ -286,7 +293,7 @@ export default function LiveSession({ user }) {
       }
 
       // When user stops sharing from browser UI:
-      sStream.getVideoTracks()[0].onended = () => stopScreenShare();
+  sStream.getVideoTracks()[0].onended = () => stopScreenShare();
     } catch (err) {
       console.error("shareScreen error:", err);
       setIsScreenSharing(false);
@@ -296,7 +303,9 @@ export default function LiveSession({ user }) {
   // Stop screen share
   // Stop screen share (multi-track: remove screen video track from peer connection)
   const stopScreenShare = async () => {
-    setIsScreenSharing(false);
+  setIsScreenSharing(false);
+  // Notify remote peer to update layout
+  socketRef.current.emit('screenShareLayout', false);
     if (screenShareVideoRef.current?.srcObject) {
       screenShareVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
       screenShareVideoRef.current.srcObject = null;
@@ -415,11 +424,31 @@ export default function LiveSession({ user }) {
         <div className="flex items-center gap-2 mb-2 text-gray-700"><Video className="w-5 h-5" /> Video Call</div>
 
         <div className="w-full flex flex-row gap-2 bg-black rounded-xl overflow-hidden" style={{ height: isScreenSharing ? 'calc(100% - 75px)' : '150px', position: "relative" }}>
-          {isScreenSharing ? (
+          {(isScreenSharing || remoteScreenSharing) ? (
             <>
               <div className="w-full h-full relative bg-gray-900 rounded-xl">
                 <video ref={screenShareVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
-                <button className="absolute top-2 right-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900" onClick={stopScreenShare}>Stop Sharing</button>
+                {isScreenSharing && (
+                  <>
+                    <button className="absolute top-2 right-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900" onClick={stopScreenShare}>Stop Sharing</button>
+                    <button
+                      className="absolute top-2 left-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900"
+                      onClick={() => {
+                        if (screenShareVideoRef.current) {
+                          if (screenShareVideoRef.current.requestFullscreen) {
+                            screenShareVideoRef.current.requestFullscreen();
+                          } else if (screenShareVideoRef.current.webkitRequestFullscreen) {
+                            screenShareVideoRef.current.webkitRequestFullscreen();
+                          } else if (screenShareVideoRef.current.msRequestFullscreen) {
+                            screenShareVideoRef.current.msRequestFullscreen();
+                          }
+                        }
+                      }}
+                    >
+                      Fullscreen
+                    </button>
+                  </>
+                )}
               </div>
               <div className="w-full h-full flex flex-col gap-2" style={{ width: "25%", height: "100%" }}>
                 <div className="h-full w-full flex-1 bg-gray-900 rounded-xl relative bg-white">
