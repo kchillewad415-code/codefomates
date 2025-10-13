@@ -15,22 +15,17 @@ export default function LiveSession({ user }) {
   const [input, setInput] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
-  const [showVideoSection, setShowVideoSection] = useState(false);
-  const [isVideoStarted, setIsVideoStarted] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [remoteScreenSharing, setRemoteScreenSharing] = useState(false);
-  const [cameraStream, setCameraStream] = useState(null);
   const [screenStream, setScreenStream] = useState(null);
   const [issueFile, setIssueFile] = useState(null);
   const [issue, setIssue] = useState(null);
   const [isOfferer, setIsOfferer] = useState(false);
 
-  const videoSectionRef = useRef(null);
+  // Removed videoSectionRef
   const messagesEndRef = useRef(null);
   const socketRef = useRef();
   const peerRef = useRef();
-  const localVideoRef = useRef(null);
-  const remoteVideoRef = useRef(null);
   const screenShareVideoRef = useRef(null);
 
 
@@ -141,50 +136,24 @@ export default function LiveSession({ user }) {
     const pc = new RTCPeerConnection(RTC_CONFIG);
     peerRef.current = pc;
 
-    // Always add a video transceiver for camera (sendrecv)
-    pc.videoTransceiver = pc.addTransceiver('video', { direction: 'sendrecv' });
-    // Optionally, add an audio transceiver if you want audio resume too
-    // pc.audioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv' });
-
-    // If we have a stream, set the video track
+    // Only screen share logic
     if (stream) {
-      const videoTrack = stream.getVideoTracks()[0];
-      if (videoTrack) {
-        pc.videoTransceiver.sender.replaceTrack(videoTrack);
-      }
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
     }
 
     // When remote track arrives, attach to correct remote video element
     pc.ontrack = (event) => {
-      if (event.track.kind === 'video') {
-        const isScreen = event.track.label && event.track.label.toLowerCase().includes('screen');
-        if (isScreen) {
-          // Screen share
-          if (screenShareVideoRef.current) {
-            // Always create a new MediaStream with only active tracks
-            const newStream = new MediaStream();
-            // Add all active video tracks labeled as screen
-            pc.getReceivers().forEach(r => {
-              if (r.track && r.track.kind === 'video' && r.track.label.toLowerCase().includes('screen') && r.track.readyState === 'live') {
-                newStream.addTrack(r.track);
-              }
-            });
-            screenShareVideoRef.current.srcObject = newStream;
-            screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(() => { });
-          }
-        } else {
-          // Camera
-          if (remoteVideoRef.current) {
-            // Always create a new MediaStream with only active tracks
-            const newStream = new MediaStream();
-            pc.getReceivers().forEach(r => {
-              if (r.track && r.track.kind === 'video' && (!r.track.label.toLowerCase().includes('screen')) && r.track.readyState === 'live') {
-                newStream.addTrack(r.track);
-              }
-            });
-            remoteVideoRef.current.srcObject = newStream;
-            remoteVideoRef.current.onloadedmetadata = () => remoteVideoRef.current.play().catch(() => { });
-          }
+      if (event.track.kind === 'video' || event.track.kind === 'audio') {
+        // Only handle screen share (video+audio)
+        if (screenShareVideoRef.current) {
+          const newStream = new MediaStream();
+          pc.getReceivers().forEach(r => {
+            if (r.track && (r.track.kind === 'video' || r.track.kind === 'audio') && r.track.readyState === 'live') {
+              newStream.addTrack(r.track);
+            }
+          });
+          screenShareVideoRef.current.srcObject = newStream;
+          screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(() => { });
         }
       }
     };
@@ -221,81 +190,33 @@ export default function LiveSession({ user }) {
       console.error("Offer error:", err);
     }
   };
-  // Start camera (multi-track: add camera video to peer connection)
-  const startVideo = async (isCaller = true) => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      setIsVideoStarted(true);
-      setCameraStream(stream);
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-        localVideoRef.current.onloadedmetadata = () => localVideoRef.current.play().catch(() => { });
-      }
+  // Video/camera logic removed
 
-      // If we have a peer already, use its video transceiver; otherwise create pc
-      if (!peerRef.current) {
-        initPeerConnection();
-      }
-      const videoTrack = stream.getVideoTracks()[0];
-      if (peerRef.current && peerRef.current.videoTransceiver && videoTrack) {
-        await peerRef.current.videoTransceiver.sender.replaceTrack(videoTrack);
-        await createAndSendOffer();
-      }
-    } catch (err) {
-      console.error("startVideo error:", err);
-    }
-  };
-
-  // Stop camera
-  const endVideo = () => {
-    setIsVideoStarted(false);
-    // Stop local video and set sender's track to null (keeps transceiver alive)
-    if (localVideoRef.current?.srcObject) {
-      localVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
-      localVideoRef.current.srcObject = null;
-    }
-    if (cameraStream) {
-      cameraStream.getTracks().forEach(track => track.stop());
-      setCameraStream(null);
-    }
-    if (peerRef.current && peerRef.current.videoTransceiver) {
-      peerRef.current.videoTransceiver.sender.replaceTrack(null);
-      createAndSendOffer();
-    }
-  };
-
-  // Share screen (multi-track: add screen video to peer connection)
+  // Share screen (with audio)
   const shareScreen = async () => {
     try {
-      const sStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
-  setIsScreenSharing(true);
-  // Notify remote peer to update layout
-  socketRef.current.emit('screenShareLayout', true);
+      const sStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+      setIsScreenSharing(true);
+      socketRef.current.emit('screenShareLayout', true);
       setScreenStream(sStream);
       if (screenShareVideoRef.current) {
         screenShareVideoRef.current.srcObject = sStream;
         screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(() => { });
       }
-
-      // Add screen video track if not already present
       if (!peerRef.current) {
         initPeerConnection();
       }
-      const screenTrack = sStream.getVideoTracks()[0];
+      // Remove all existing senders before adding new tracks
       const senders = peerRef.current.getSenders();
-      const hasScreen = senders.some(s => s.track && s.track.kind === 'video' && s.track.label.toLowerCase().includes('screen'));
-      let screenTrackAdded = false;
-      if (!hasScreen && screenTrack) {
-        peerRef.current.addTrack(screenTrack, sStream);
-        screenTrackAdded = true;
-      }
-      // Always create and send offer after adding a new track
-      if (screenTrackAdded) {
-        await createAndSendOffer();
-      }
-
+      senders.forEach(sender => {
+        try { peerRef.current.removeTrack(sender); } catch (e) { }
+      });
+      sStream.getTracks().forEach(track => {
+        peerRef.current.addTrack(track, sStream);
+      });
+      await createAndSendOffer();
       // When user stops sharing from browser UI:
-  sStream.getVideoTracks()[0].onended = () => stopScreenShare();
+      sStream.getVideoTracks()[0].onended = () => stopScreenShare();
     } catch (err) {
       console.error("shareScreen error:", err);
       setIsScreenSharing(false);
@@ -303,26 +224,20 @@ export default function LiveSession({ user }) {
   };
 
   // Stop screen share
-  // Stop screen share (multi-track: remove screen video track from peer connection)
   const stopScreenShare = async () => {
-  setIsScreenSharing(false);
-  // Notify remote peer to update layout
-  socketRef.current.emit('screenShareLayout', false);
+    setIsScreenSharing(false);
+    socketRef.current.emit('screenShareLayout', false);
     if (screenShareVideoRef.current?.srcObject) {
       screenShareVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
       screenShareVideoRef.current.srcObject = null;
     }
-
     if (screenStream) {
-      // Remove screen video track from peer connection
+      // Remove all tracks from peer connection
       const senders = peerRef.current?.getSenders() || [];
-      screenStream.getTracks().forEach(track => {
-        const sender = senders.find(s => s.track && s.track.id === track.id);
-        if (sender) {
-          try { peerRef.current.removeTrack(sender); } catch (e) { }
-        }
-        track.stop();
+      senders.forEach(sender => {
+        try { peerRef.current.removeTrack(sender); } catch (e) { }
       });
+      screenStream.getTracks().forEach(track => track.stop());
       setScreenStream(null);
       await createAndSendOffer();
     }
@@ -361,11 +276,7 @@ export default function LiveSession({ user }) {
           <button
             className="p-1 md:hidden rounded-full bg-blue-100 hover:bg-blue-200"
             onClick={() => {
-              setShowVideoSection(true);
               setTimeout(() => {
-                if (videoSectionRef.current) {
-                  videoSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
               }, 100); // Wait for section to appear
             }}
             aria-label="Show Video Section"
@@ -421,66 +332,37 @@ export default function LiveSession({ user }) {
         </form>
       </div>
 
-      {/* Video Section */}
-      <div ref={videoSectionRef} className={`flex-1 bg-white rounded-xl shadow p-4 flex flex-col justify-center items-center ${showVideoSection ? '' : 'hidden'} md:block`}>
-        <div className="flex items-center gap-2 mb-2 text-gray-700"><Video className="w-5 h-5" /> Video Call</div>
-
+      {/* Screen Share Section Only */}
+      <div className="flex-1 bg-white rounded-xl shadow p-4 flex flex-col justify-center items-center">
+        <div className="flex items-center gap-2 mb-2 text-gray-700"><Video className="w-5 h-5" /> Screen Share</div>
         <div className="w-full flex flex-row gap-2 bg-black rounded-xl overflow-hidden" style={{ height: isScreenSharing || remoteScreenSharing? 'calc(100% - 75px)' : '150px', position: "relative" }}>
-          {(isScreenSharing || remoteScreenSharing) ? (
-            <>
-              <div className="w-full h-full relative bg-gray-900 rounded-xl">
-                <video ref={screenShareVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
-                {(isScreenSharing || remoteScreenSharing) && (
-                  <>
-                    <button className="absolute top-2 right-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900" onClick={stopScreenShare}>Stop Sharing</button>
-                    <button
-                      className="absolute top-2 left-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900"
-                      onClick={() => {
-                        if (screenShareVideoRef.current) {
-                          if (screenShareVideoRef.current.requestFullscreen) {
-                            screenShareVideoRef.current.requestFullscreen();
-                          } else if (screenShareVideoRef.current.webkitRequestFullscreen) {
-                            screenShareVideoRef.current.webkitRequestFullscreen();
-                          } else if (screenShareVideoRef.current.msRequestFullscreen) {
-                            screenShareVideoRef.current.msRequestFullscreen();
-                          }
-                        }
-                      }}
-                    >
-                      Fullscreen
-                    </button>
-                  </>
-                )}
-              </div>
-              <div className="w-full h-full flex flex-col gap-2" style={{ width: "25%", height: "100%" }}>
-                <div className="h-full w-full flex-1 bg-gray-900 rounded-xl relative bg-white">
-                  <video ref={localVideoRef} autoPlay muted playsInline className={`object-cover transition-all duration-300 rounded-full w-full h-full`} style={{ height: "50%" }} />
-                  <span className="absolute bottom-1 left-1 text-white text-xs">You</span>
-                </div>
-                <div className="h-full w-full flex-1 bg-gray-900 rounded-xl relative bg-white">
-                  <video ref={remoteVideoRef} autoPlay playsInline className={`object-cover transition-all duration-300 rounded-full w-full h-full`} style={{ height: "50%" }} />
-                  <span className="absolute bottom-1 left-1 text-white text-xs">Remote</span>
-                </div>
-              </div>
-            </>
-          ) : (
-            <>
-              <div className="flex-1 bg-gray-900 rounded-xl relative">
-                <video ref={localVideoRef} autoPlay muted playsInline className="w-full h-full object-cover" />
-                <span className="absolute bottom-1 left-1 text-white text-xs">You</span>
-              </div>
-              <div className="flex-1 bg-gray-900 rounded-xl relative">
-                <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
-                <span className="absolute bottom-1 left-1 text-white text-xs">Remote</span>
-              </div>
-            </>
-          )}
+          <div className="w-full h-full relative bg-gray-900 rounded-xl">
+            <video ref={screenShareVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+            {(isScreenSharing || remoteScreenSharing) && (
+              <>
+                <button className="absolute top-2 right-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900" onClick={stopScreenShare}>Stop Sharing</button>
+                <button
+                  className="absolute top-2 left-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900"
+                  onClick={() => {
+                    if (screenShareVideoRef.current) {
+                      if (screenShareVideoRef.current.requestFullscreen) {
+                        screenShareVideoRef.current.requestFullscreen();
+                      } else if (screenShareVideoRef.current.webkitRequestFullscreen) {
+                        screenShareVideoRef.current.webkitRequestFullscreen();
+                      } else if (screenShareVideoRef.current.msRequestFullscreen) {
+                        screenShareVideoRef.current.msRequestFullscreen();
+                      }
+                    }
+                  }}
+                >
+                  Fullscreen
+                </button>
+              </>
+            )}
+          </div>
         </div>
-
         {/* Controls */}
         <div className="flex flex-wrap gap-2 mt-4">
-          {!isVideoStarted && <button onClick={() => startVideo(true)} className="bg-blue-600 text-white px-4 py-2 rounded-xl">Start Video</button>}
-          {isVideoStarted && <button onClick={endVideo} className="bg-red-600 text-white px-4 py-2 rounded-xl">Stop Video</button>}
           {!isScreenSharing && <button onClick={shareScreen} className="bg-teal-700 text-white px-4 py-2 rounded-xl">Share Screen</button>}
           {issueFile && (
             <a href={`${API_URL}/uploads/${issueFile}`} target="_blank" rel="noopener noreferrer" className="bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 flex items-center justify-center" style={{ textDecoration: 'none' }}>
