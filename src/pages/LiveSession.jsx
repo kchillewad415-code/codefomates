@@ -82,9 +82,7 @@ export default function LiveSession({ user }) {
 
     // Setup socket
     socketRef.current = io(SOCKET_URL);
-    socketRef.current.emit('joinRoom', roomId, name, (role) => {
-      setIsOfferer(role === 'offerer');
-    });
+    socketRef.current.emit('joinRoom', roomId, name);
 
     // --- Socket event listeners ---
     const handleScreenShareLayout = (active) => {
@@ -157,26 +155,22 @@ export default function LiveSession({ user }) {
   const peer = new RTCPeerConnection({
     iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
   });
+const isNegotiatingRef = useRef(false);
 
-  // Initialize peer connection
 const initPeerConnection = () => {
   if (peerRef.current) {
-    try { peerRef.current.close(); } catch (e) { }
+    try { peerRef.current.close(); } catch {}
     peerRef.current = null;
   }
+
   const pc = new RTCPeerConnection(RTC_CONFIG);
   peerRef.current = pc;
 
   pc.ontrack = (event) => {
+    const remoteStream = new MediaStream();
+    event.streams[0].getTracks().forEach(t => remoteStream.addTrack(t));
     if (screenShareVideoRef.current) {
-      const newStream = new MediaStream();
-      pc.getReceivers().forEach(r => {
-        if (r.track && (r.track.kind === 'video' || r.track.kind === 'audio') && r.track.readyState === 'live') {
-          newStream.addTrack(r.track);
-        }
-      });
-      screenShareVideoRef.current.srcObject = newStream;
-      screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(() => { });
+      screenShareVideoRef.current.srcObject = remoteStream;
     }
   };
 
@@ -185,29 +179,49 @@ const initPeerConnection = () => {
       socketRef.current.emit('ice-candidate', { roomId, candidate: event.candidate });
     }
   };
-  pc.onnegotiationneeded = async () => {
+pc.onnegotiationneeded = async () => {
+    if (isNegotiatingRef.current) return; // skip redundant negotiations
+    isNegotiatingRef.current = true;
     try {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
-      socketRef.current.emit('offer', { roomId, offer: pc.localDescription });
-    } catch (err) {
-      console.error("Negotiation error:", err);
-    }
-  };
-  return pc;
-};
-  // Helper: create and send offer (used when caller starts)
-  const createAndSendOffer = async () => {
-    if (!peerRef.current) return;
-    try {
-      if (peerRef.current.signalingState !== 'stable') return;
-      const offer = await peerRef.current.createOffer();
-      await peerRef.current.setLocalDescription(offer);
       socketRef.current.emit('offer', { roomId, offer });
     } catch (err) {
-      console.error("Offer error:", err);
+      console.error("Negotiation error:", err);
+    } finally {
+      isNegotiatingRef.current = false;
     }
   };
+
+  return pc;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // Helper: create and send offer (used when caller starts)
+const createAndSendOffer = async () => {
+  if (!peerRef.current) return;
+  if (peerRef.current.signalingState !== "stable") {
+    console.warn("Skipping renegotiation: signalingState not stable");
+    return;
+  }
+  const offer = await peerRef.current.createOffer();
+  await peerRef.current.setLocalDescription(offer);
+  socketRef.current.emit("offer", { roomId, offer });
+};
   // Video/camera logic removed
 
   // Share screen (with audio)
@@ -265,6 +279,14 @@ const shareScreen = async () => {
       try { peerRef.current.close(); } catch (e) { }
       peerRef.current = null;
     }
+    socketRef.current.emit('forceClearVideo', { roomId });
+
+    socketRef.current.on('forceClearVideo', () => {
+  if (screenShareVideoRef.current) {
+    screenShareVideoRef.current.srcObject = null;
+  }
+  setRemoteScreenSharing(false);
+});
   };
   // Listen for remote screen share stopped event
   useEffect(() => {
