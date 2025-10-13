@@ -224,6 +224,7 @@ const shareScreen = async () => {
   const stopScreenShare = async () => {
     setIsScreenSharing(false);
     socketRef.current.emit('screenShareLayout', false);
+    socketRef.current.emit('screenShareStopped', { roomId }); // Notify remote to clear video
     if (screenShareVideoRef.current?.srcObject) {
       screenShareVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
       screenShareVideoRef.current.srcObject = null;
@@ -238,6 +239,25 @@ const shareScreen = async () => {
       peerRef.current = null;
     }
   };
+  // Listen for remote screen share stopped event
+  useEffect(() => {
+    if (!socketRef.current) return;
+    const handleScreenShareStopped = () => {
+      setRemoteScreenSharing(false);
+      if (screenShareVideoRef.current) {
+        screenShareVideoRef.current.srcObject = null;
+      }
+      // Close and reset peer connection on remote as well
+      if (peerRef.current) {
+        try { peerRef.current.close(); } catch (e) { }
+        peerRef.current = null;
+      }
+    };
+    socketRef.current.on('screenShareStopped', handleScreenShareStopped);
+    return () => {
+      socketRef.current.off('screenShareStopped', handleScreenShareStopped);
+    };
+  }, []);
   const [solutionProvided, setSolutionProvided] = useState("");
   const handleSolutionChange = (e) => {
     setSolutionProvided(e.target.value);
