@@ -190,6 +190,12 @@ const shareScreen = async () => {
     return;
   }
   try {
+    // Always create a new peer connection for each new share
+    if (peerRef.current) {
+      try { peerRef.current.close(); } catch (e) { }
+      peerRef.current = null;
+    }
+    initPeerConnection();
     const sStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
     setIsScreenSharing(true);
     setMobileScreenShareError("");
@@ -199,14 +205,6 @@ const shareScreen = async () => {
       screenShareVideoRef.current.srcObject = sStream;
       screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(() => { });
     }
-    if (!peerRef.current) {
-      initPeerConnection();
-    }
-    // Remove all existing senders before adding new tracks
-    const senders = peerRef.current.getSenders();
-    senders.forEach(sender => {
-      try { peerRef.current.removeTrack(sender); } catch (e) { }
-    });
     // Add all tracks (video+audio) to peer connection
     sStream.getTracks().forEach(track => {
       peerRef.current.addTrack(track, sStream);
@@ -231,14 +229,13 @@ const shareScreen = async () => {
       screenShareVideoRef.current.srcObject = null;
     }
     if (screenStream) {
-      // Remove all tracks from peer connection
-      const senders = peerRef.current?.getSenders() || [];
-      senders.forEach(sender => {
-        try { peerRef.current.removeTrack(sender); } catch (e) { }
-      });
       screenStream.getTracks().forEach(track => track.stop());
       setScreenStream(null);
-      await createAndSendOffer();
+    }
+    // Fully close and nullify the peer connection
+    if (peerRef.current) {
+      try { peerRef.current.close(); } catch (e) { }
+      peerRef.current = null;
     }
   };
   const [solutionProvided, setSolutionProvided] = useState("");
