@@ -241,6 +241,7 @@ const shareScreen = async () => {
     // Always renegotiate after adding tracks
     await createAndSendOffer();
     // When user stops sharing from browser UI:
+    
     sStream.getVideoTracks()[0].onended = () => stopScreenShare();
   } catch (err) {
     setMobileScreenShareError("Screen sharing failed. Your browser may not support it or permission was denied.");
@@ -386,6 +387,7 @@ const shareScreen = async () => {
       <div className="flex-1 bg-white rounded-xl shadow p-4 flex flex-col justify-center items-center">
         <div className="flex items-center gap-2 mb-2 text-gray-700 w-full justify-between">
           <div className='flex items-center'><Video className="w-5 h-5" /> <span className='ml-2'>Screen Share</span></div>
+          {!screenFullScreenStream && <button onClick={handleFullScreen} className='bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900'>fullscreen</button>}
         </div>
         <div className={`w-full flex flex-row gap-2 bg-black rounded-xl overflow-hidden ${screenFullScreenStream ? "absolute w-full h-full top-0 left-0" : ""}`}>
           <div className="w-full h-full relative bg-gray-900 rounded-xl">
@@ -393,7 +395,6 @@ const shareScreen = async () => {
             <video ref={screenShareVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
             {(isScreenSharing || remoteScreenSharing) && (
               <>
-                {!screenFullScreenStream && <button onClick={handleFullScreen} className='absolute top-2 left-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900 z-10'>fullscreen</button>}
                 <button className="absolute top-2 right-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900" onClick={stopScreenShare}>Stop Sharing</button>
               </>
             )}
