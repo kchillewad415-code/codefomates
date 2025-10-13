@@ -57,7 +57,7 @@ export default function HomePage({ onlineUsers, animate }) {
         <>
           <section className="w-full max-w-4xl text-center mb-4">
             <p className="w-full text-gray-600 flex flex-col md:flex-row justify-around">
-              <p><strong>{issues.length}</strong> {issues.length<=1 ? "developer" : "developers"} currently need help</p><p><strong><span className={animate ? "count animate" : "count"}>{onlineUsers}</span></strong> {onlineUsers<=1 ? "solver" : "solvers"} online</p>
+              <span><strong>{issues.length}</strong> {issues.length<=1 ? "developer" : "developers"} currently need help</span><span><strong><span className={animate ? "count animate" : "count"}>{onlineUsers}</span></strong> {onlineUsers<=1 ? "solver" : "solvers"} online</span>
             </p>
           </section>
 

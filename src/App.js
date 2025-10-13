@@ -19,7 +19,8 @@ import NotFoundPage from './pages/NotFoundPage';
 import { io } from "socket.io-client";
 import { v4 as uuidv4 } from "uuid";
 import AdminAccess from "./pages/AdminAccess";
-import AdminPage from "./pages/AdminPage"
+import AdminPage from "./pages/AdminPage";
+import AdminRoute from './pages/AdminRoute';
 // Replace with your server URL
 const SOCKET_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000';
 const socket = io(SOCKET_URL);
@@ -289,7 +290,7 @@ function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/reset-password/:token" element={<ResetPasswordPage />} />
             <Route path="/krato" element={<AdminAccess onLoginUser={handleLoginUser} />} />
-            <Route path="/krato/details" element={<AdminPage user={loggedUser} />} />
+            <Route path="/krato/details" element={<AdminRoute><AdminPage user={loggedUser} /></AdminRoute>}/>
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </div>
