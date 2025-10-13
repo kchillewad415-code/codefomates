@@ -23,7 +23,7 @@ export default function LiveSession({ user }) {
   const [isOfferer, setIsOfferer] = useState(false);
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const [mobileScreenShareError, setMobileScreenShareError] = useState("");
-
+  const [screenFullScreenStream, setScreenFullScreenStream] = useState(false);
   // Removed videoSectionRef
   const messagesEndRef = useRef(null);
   const socketRef = useRef();
@@ -267,6 +267,7 @@ const shareScreen = async () => {
       try { peerRef.current.close(); } catch (e) { }
       peerRef.current = null;
     }
+    setScreenFullScreenStream(false);
   };
   // Listen for remote screen share stopped event
   useEffect(() => {
@@ -308,8 +309,12 @@ const shareScreen = async () => {
       console.log(err);
     }
   };
+  const handleFullScreen= ()=>{
+    setScreenFullScreenStream(!screenFullScreenStream);
+    console.log(screenFullScreenStream);
+  };
   return (
-    <div className="max-w-7xl mx-auto px-4 flex flex-col lg:flex-row gap-6">
+    <div className={`max-w-7xl mx-auto px-4 flex flex-col lg:flex-row gap-6 ${screenFullScreenStream ? "relative" : ""}`}>
       {/* Chat Section */}
       <div className="flex-1 bg-white rounded-xl shadow p-4 flex flex-col" style={{ height: 'calc(100vh - 265px)', maxHeight: 'calc(100vh - 120px)', overflowY: 'auto' }}>
         <div className="flex items-center justify-between mb-2 text-gray-700">
@@ -379,29 +384,17 @@ const shareScreen = async () => {
 
       {/* Screen Share Section Only */}
       <div className="flex-1 bg-white rounded-xl shadow p-4 flex flex-col justify-center items-center">
-        <div className="flex items-center gap-2 mb-2 text-gray-700"><Video className="w-5 h-5" /> Screen Share</div>
-        <div className="w-full flex flex-row gap-2 bg-black rounded-xl overflow-hidden" style={{ height: isScreenSharing || remoteScreenSharing? 'calc(100% - 75px)' : '150px', position: "relative" }}>
+        <div className="flex items-center gap-2 mb-2 text-gray-700 w-full justify-between">
+          <div className='flex items-center'><Video className="w-5 h-5" /> <span className='ml-2'>Screen Share</span></div>
+        </div>
+        <div className={`w-full flex flex-row gap-2 bg-black rounded-xl overflow-hidden ${screenFullScreenStream ? "absolute w-full h-full top-0 left-0" : ""}`}>
           <div className="w-full h-full relative bg-gray-900 rounded-xl">
+            {screenFullScreenStream && <button onClick={handleFullScreen} className='absolute top-2 left-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900 z-10'>back to normal screen</button>}
             <video ref={screenShareVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
             {(isScreenSharing || remoteScreenSharing) && (
               <>
+                {!screenFullScreenStream && <button onClick={handleFullScreen} className='absolute top-2 left-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900 z-10'>fullscreen</button>}
                 <button className="absolute top-2 right-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900" onClick={stopScreenShare}>Stop Sharing</button>
-                <button
-                  className="absolute top-2 left-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900"
-                  onClick={() => {
-                    if (screenShareVideoRef.current) {
-                      if (screenShareVideoRef.current.requestFullscreen) {
-                        screenShareVideoRef.current.requestFullscreen();
-                      } else if (screenShareVideoRef.current.webkitRequestFullscreen) {
-                        screenShareVideoRef.current.webkitRequestFullscreen();
-                      } else if (screenShareVideoRef.current.msRequestFullscreen) {
-                        screenShareVideoRef.current.msRequestFullscreen();
-                      }
-                    }
-                  }}
-                >
-                  Fullscreen
-                </button>
               </>
             )}
           </div>
