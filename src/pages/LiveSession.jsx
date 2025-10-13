@@ -85,16 +85,21 @@ export default function LiveSession({ user }) {
     socketRef.current.emit('joinRoom', roomId, name, (role) => {
       setIsOfferer(role === 'offerer');
     });
-    // Listen for remote screen share layout events (register ONCE, not inside chatMessage)
-    socketRef.current.on('screenShareLayout', (active) => {
-      setRemoteScreenSharing(active);
-    });
-    socketRef.current.on('chatMessage', (msg) => {
-      setMessages(prev => [...prev, { id: Date.now(), sender: msg.sender, text: msg.message, time: msg.time }]);
-    });
 
-    // WebRTC signaling
-    socketRef.current.on('offer', async (offer) => {
+    // --- Socket event listeners ---
+    const handleScreenShareLayout = (active) => {
+      setRemoteScreenSharing(active);
+    };
+    const handleChatMessage = (msg) => {
+      setMessages(prev => [...prev, { id: Date.now(), sender: msg.sender, text: msg.message, time: msg.time }]);
+    };
+    const handleOffer = async (offer) => {
+      // Always close and recreate peer connection on remote offer
+      if (peerRef.current) {
+        try { peerRef.current.close(); } catch (e) { }
+        peerRef.current = null;
+      }
+      initPeerConnection();
       if (peerRef.current.signalingState !== 'stable') {
         await peerRef.current.setLocalDescription({ type: 'rollback' });
       }
@@ -102,18 +107,40 @@ export default function LiveSession({ user }) {
       const answer = await peerRef.current.createAnswer();
       await peerRef.current.setLocalDescription(answer);
       socketRef.current.emit('answer', { roomId, answer });
-    });
-
-    socketRef.current.on('answer', async (answer) => {
+    };
+    const handleAnswer = async (answer) => {
       if (peerRef.current) await peerRef.current.setRemoteDescription(answer);
-    });
-
-    socketRef.current.on('ice-candidate', async (candidate) => {
+    };
+    const handleIceCandidate = async (candidate) => {
       try { if (peerRef.current) await peerRef.current.addIceCandidate(candidate); }
       catch (e) { console.error(e); }
-    });
+    };
+    const handleScreenShareStopped = () => {
+      setRemoteScreenSharing(false);
+      if (screenShareVideoRef.current) {
+        screenShareVideoRef.current.srcObject = null;
+      }
+      // Always close and recreate peer connection on remote stop
+      if (peerRef.current) {
+        try { peerRef.current.close(); } catch (e) { }
+        peerRef.current = null;
+      }
+    };
+
+    socketRef.current.on('screenShareLayout', handleScreenShareLayout);
+    socketRef.current.on('chatMessage', handleChatMessage);
+    socketRef.current.on('offer', handleOffer);
+    socketRef.current.on('answer', handleAnswer);
+    socketRef.current.on('ice-candidate', handleIceCandidate);
+    socketRef.current.on('screenShareStopped', handleScreenShareStopped);
 
     return () => {
+      socketRef.current.off('screenShareLayout', handleScreenShareLayout);
+      socketRef.current.off('chatMessage', handleChatMessage);
+      socketRef.current.off('offer', handleOffer);
+      socketRef.current.off('answer', handleAnswer);
+      socketRef.current.off('ice-candidate', handleIceCandidate);
+      socketRef.current.off('screenShareStopped', handleScreenShareStopped);
       socketRef.current.disconnect();
       if (peerRef.current) peerRef.current.close();
     };
