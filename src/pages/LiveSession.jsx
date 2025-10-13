@@ -40,6 +40,12 @@ export default function LiveSession({ user }) {
     ]
   };
 
+  useEffect(() => {
+  if (!peerRef.current) {
+    initPeerConnection();
+  }
+  // eslint-disable-next-line
+}, []);
   // Scroll to bottom when messages update
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -89,7 +95,6 @@ export default function LiveSession({ user }) {
 
     // WebRTC signaling
     socketRef.current.on('offer', async (offer) => {
-      if (!peerRef.current) initPeerConnection();
       if (peerRef.current.signalingState !== 'stable') {
         await peerRef.current.setLocalDescription({ type: 'rollback' });
       }
@@ -127,56 +132,43 @@ export default function LiveSession({ user }) {
   });
 
   // Initialize peer connection
-  const initPeerConnection = (stream) => {
-
-    // reuse existing pc if any (close it)
-    if (peerRef.current) {
-      try { peerRef.current.close(); } catch (e) { }
-      peerRef.current = null;
-    }
-
-    const pc = new RTCPeerConnection(RTC_CONFIG);
-    peerRef.current = pc;
-
-    // Only screen share logic
-    if (stream) {
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
-    }
-
-    // When remote track arrives, attach to correct remote video element
-   pc.ontrack = (event) => {
-  if (screenShareVideoRef.current) {
-    const newStream = new MediaStream();
-    pc.getReceivers().forEach(r => {
-      if (r.track && (r.track.kind === 'video' || r.track.kind === 'audio') && r.track.readyState === 'live') {
-        newStream.addTrack(r.track);
-      }
-    });
-    screenShareVideoRef.current.srcObject = newStream;
-    screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(() => { });
+const initPeerConnection = () => {
+  if (peerRef.current) {
+    try { peerRef.current.close(); } catch (e) { }
+    peerRef.current = null;
   }
-};
+  const pc = new RTCPeerConnection(RTC_CONFIG);
+  peerRef.current = pc;
 
-    // Send ICE candidates through socket
-    pc.onicecandidate = (event) => {
-      if (event.candidate) {
-        socketRef.current.emit('ice-candidate', { roomId, candidate: event.candidate });
-      }
-    };
-    // Handle negotiationneeded (automatic when tracks change)
-    pc.onnegotiationneeded = async () => {
-      // create offer and send it through socket
-      try {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        socketRef.current.emit('offer', { roomId, offer: pc.localDescription });
-      } catch (err) {
-        console.error("Negotiation error:", err);
-      }
-    };
-
-    return pc;
+  pc.ontrack = (event) => {
+    if (screenShareVideoRef.current) {
+      const newStream = new MediaStream();
+      pc.getReceivers().forEach(r => {
+        if (r.track && (r.track.kind === 'video' || r.track.kind === 'audio') && r.track.readyState === 'live') {
+          newStream.addTrack(r.track);
+        }
+      });
+      screenShareVideoRef.current.srcObject = newStream;
+      screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(() => { });
+    }
   };
+
+  pc.onicecandidate = (event) => {
+    if (event.candidate) {
+      socketRef.current.emit('ice-candidate', { roomId, candidate: event.candidate });
+    }
+  };
+  pc.onnegotiationneeded = async () => {
+    try {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      socketRef.current.emit('offer', { roomId, offer: pc.localDescription });
+    } catch (err) {
+      console.error("Negotiation error:", err);
+    }
+  };
+  return pc;
+};
   // Helper: create and send offer (used when caller starts)
   const createAndSendOffer = async () => {
     if (!peerRef.current) return;
