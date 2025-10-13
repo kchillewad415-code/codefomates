@@ -89,16 +89,6 @@ export default function LiveSession({ user }) {
     // --- Socket event listeners ---
     const handleScreenShareLayout = (active) => {
       setRemoteScreenSharing(active);
-      if (!active) {
-        // Always clear video and reset peer connection if screen sharing stops
-        if (screenShareVideoRef.current) {
-          screenShareVideoRef.current.srcObject = null;
-        }
-        if (peerRef.current) {
-          try { peerRef.current.close(); } catch (e) { }
-          peerRef.current = null;
-        }
-      }
     };
     const handleChatMessage = (msg) => {
       setMessages(prev => [...prev, { id: Date.now(), sender: msg.sender, text: msg.message, time: msg.time }]);
@@ -132,6 +122,7 @@ export default function LiveSession({ user }) {
       if (screenShareVideoRef.current) {
         screenShareVideoRef.current.srcObject = null;
       }
+      // Always close and recreate peer connection on remote stop
       if (peerRef.current) {
         try { peerRef.current.close(); } catch (e) { }
         peerRef.current = null;
@@ -179,8 +170,6 @@ const initPeerConnection = () => {
   peerRef.current = pc;
 
   pc.ontrack = (event) => {
-    setRemoteScreenSharing(remoteScreenSharing);
-    setIsScreenSharing(isScreenSharing);
     if (screenShareVideoRef.current) {
       const newStream = new MediaStream();
       pc.getReceivers().forEach(r => {
@@ -403,11 +392,7 @@ const shareScreen = async () => {
         <div className={`w-full flex flex-row gap-2 bg-black rounded-xl overflow-hidden ${screenFullScreenStream ? "absolute w-full h-full top-0 left-0" : ""}`}>
           <div className="w-full h-full relative bg-gray-900 rounded-xl">
             {screenFullScreenStream && <button onClick={handleFullScreen} className='absolute top-2 left-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900 z-10'>back to normal screen</button>}
-            {(isScreenSharing || remoteScreenSharing) ? (
-              <video ref={screenShareVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-[200px] flex items-center justify-center text-gray-400 text-lg select-none">No screen is being shared</div>
-            )}
+            <video ref={screenShareVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
             {(isScreenSharing || remoteScreenSharing) && (
               <>
                 <button className="absolute top-2 right-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900" onClick={stopScreenShare}>Stop Sharing</button>
