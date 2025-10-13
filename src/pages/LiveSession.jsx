@@ -135,13 +135,38 @@ export default function LiveSession({ user }) {
       stream.getTracks().forEach(track => pc.addTrack(track, stream));
     }
 
-    // When remote track arrives, attach to remote video
+    // When remote track arrives, attach to correct remote video element
     pc.ontrack = (event) => {
-      // event.streams[0] is usually the stream that contains the incoming track(s)
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = event.streams[0];
-        // ensure autoplay
-        remoteVideoRef.current.onloadedmetadata = () => remoteVideoRef.current.play().catch(() => { });
+      // event.track.kind: 'video' or 'audio'
+      // event.track.label may help distinguish camera vs screen
+      if (event.track.kind === 'video') {
+        // Try to distinguish camera vs screen by label
+        if (event.track.label.toLowerCase().includes('screen')) {
+          // Screen share
+          if (screenShareVideoRef.current) {
+            // If not already set, create a new MediaStream for this track
+            if (!screenShareVideoRef.current.srcObject || !(screenShareVideoRef.current.srcObject instanceof MediaStream)) {
+              screenShareVideoRef.current.srcObject = new MediaStream();
+            }
+            const ms = screenShareVideoRef.current.srcObject;
+            if (!ms.getTracks().some(t => t.id === event.track.id)) {
+              ms.addTrack(event.track);
+            }
+            screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(() => { });
+          }
+        } else {
+          // Camera
+          if (remoteVideoRef.current) {
+            if (!remoteVideoRef.current.srcObject || !(remoteVideoRef.current.srcObject instanceof MediaStream)) {
+              remoteVideoRef.current.srcObject = new MediaStream();
+            }
+            const ms = remoteVideoRef.current.srcObject;
+            if (!ms.getTracks().some(t => t.id === event.track.id)) {
+              ms.addTrack(event.track);
+            }
+            remoteVideoRef.current.onloadedmetadata = () => remoteVideoRef.current.play().catch(() => { });
+          }
+        }
       }
     };
 
@@ -176,8 +201,7 @@ export default function LiveSession({ user }) {
       console.error("Offer error:", err);
     }
   };
-  // Start camera
-  // Start camera (replaces your startVideo)
+  // Start camera (multi-track: add camera video to peer connection)
   const startVideo = async (isCaller = true) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -188,23 +212,19 @@ export default function LiveSession({ user }) {
         localVideoRef.current.onloadedmetadata = () => localVideoRef.current.play().catch(() => { });
       }
 
-      // If we have a peer already, we want to replace video sender; otherwise create pc
+      // If we have a peer already, add camera track if not present; otherwise create pc
       if (!peerRef.current) {
-        initPeerConnection(stream); // will add tracks and set negotiationneeded
-        if (isCaller) {
-          // create offer manually for first time
-          await createAndSendOffer();
-        }
-      } else {
-        // Replace existing video sender's track (preferred) to avoid extra streams
-        const videoTrack = stream.getVideoTracks()[0];
-        const sender = peerRef.current.getSenders().find(s => s.track && s.track.kind === "video");
-        if (sender && videoTrack) {
-          await sender.replaceTrack(videoTrack);
-        } else {
-          // fallback: add track and let onnegotiationneeded handle offer
-          stream.getTracks().forEach(track => peerRef.current.addTrack(track, stream));
-        }
+        initPeerConnection(); // no stream, just create pc
+      }
+      // Add camera video track if not already present
+      const videoTrack = stream.getVideoTracks()[0];
+      const senders = peerRef.current.getSenders();
+      const hasCamera = senders.some(s => s.track && s.track.kind === 'video' && !s.track.label.toLowerCase().includes('screen'));
+      if (!hasCamera && videoTrack) {
+        peerRef.current.addTrack(videoTrack, stream);
+      }
+      if (isCaller) {
+        await createAndSendOffer();
       }
     } catch (err) {
       console.error("startVideo error:", err);
@@ -228,10 +248,9 @@ export default function LiveSession({ user }) {
     }
   };
 
-  // Share screen
+  // Share screen (multi-track: add screen video to peer connection)
   const shareScreen = async () => {
     try {
-      // get display stream (video only)
       const sStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
       setIsScreenSharing(true);
       setScreenStream(sStream);
@@ -240,24 +259,17 @@ export default function LiveSession({ user }) {
         screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(() => { });
       }
 
-      // If we have a peer, prefer replaceTrack on the video sender
+      // Add screen video track if not already present
       if (!peerRef.current) {
-        // if no peer, init with screen stream and create offer
-        initPeerConnection(sStream);
-        await createAndSendOffer();
-      } else {
-        const screenTrack = sStream.getVideoTracks()[0];
-        const sender = peerRef.current.getSenders().find(s => s.track && s.track.kind === "video");
-        if (sender && screenTrack) {
-          await sender.replaceTrack(screenTrack);
-          // replaceTrack doesn't require new offer in modern browsers but some peers need renegotiation.
-          // If remote does not get it, trigger negotiation by creating offer:
-          // await createAndSendOffer();
-        } else {
-          // fallback: add track and rely on negotiationneeded
-          sStream.getTracks().forEach(track => peerRef.current.addTrack(track, sStream));
-        }
+        initPeerConnection();
       }
+      const screenTrack = sStream.getVideoTracks()[0];
+      const senders = peerRef.current.getSenders();
+      const hasScreen = senders.some(s => s.track && s.track.kind === 'video' && s.track.label.toLowerCase().includes('screen'));
+      if (!hasScreen && screenTrack) {
+        peerRef.current.addTrack(screenTrack, sStream);
+      }
+      await createAndSendOffer();
 
       // When user stops sharing from browser UI:
       sStream.getVideoTracks()[0].onended = () => stopScreenShare();
@@ -268,7 +280,7 @@ export default function LiveSession({ user }) {
   };
 
   // Stop screen share
-  // Stop screen share (replaces your stopScreenShare)
+  // Stop screen share (multi-track: remove screen video track from peer connection)
   const stopScreenShare = async () => {
     setIsScreenSharing(false);
     if (screenShareVideoRef.current?.srcObject) {
@@ -277,32 +289,17 @@ export default function LiveSession({ user }) {
     }
 
     if (screenStream) {
-      // If peer exists, restore camera video track back into sender
-      const videoSender = peerRef.current?.getSenders().find(s => s.track && s.track.kind === "video");
-      if (videoSender) {
-        // if we still have cameraStream, prefer to set camera track back
-        const camTrack = cameraStream?.getVideoTracks()[0];
-        if (camTrack) {
-          try {
-            await videoSender.replaceTrack(camTrack);
-          } catch (err) {
-            // fallback: remove screen senders and add camera track
-            console.error("replaceTrack fallback error:", err);
-            // remove any senders that are from screenStream
-            const senders = peerRef.current.getSenders();
-            senders.forEach(s => {
-              if (s.track && screenStream.getTracks().includes(s.track)) {
-                try { peerRef.current.removeTrack(s); } catch (e) { }
-              }
-            });
-            // add camera track back (negotiationneeded will fire)
-            if (camTrack) peerRef.current.addTrack(camTrack, cameraStream);
-          }
+      // Remove screen video track from peer connection
+      const senders = peerRef.current?.getSenders() || [];
+      screenStream.getTracks().forEach(track => {
+        const sender = senders.find(s => s.track && s.track.id === track.id);
+        if (sender) {
+          try { peerRef.current.removeTrack(sender); } catch (e) { }
         }
-      }
-
-      screenStream.getTracks().forEach(track => track.stop());
+        track.stop();
+      });
       setScreenStream(null);
+      await createAndSendOffer();
     }
   };
   const [solutionProvided, setSolutionProvided] = useState("");
