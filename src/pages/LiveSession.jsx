@@ -223,14 +223,24 @@ const flushIceQueue = async () => {
 };
   // Helper: create/send offer when we manually want to start negotiation
 const createAndSendOffer = async () => {
-  if (!peerRef.current) return;
+  const pc = peerRef.current;
+  if (!pc || !socketRef.current) return;
+  if (isNegotiatingRef.current) return;
+
+  isNegotiatingRef.current = true;
+
   try {
-    const offer = await peerRef.current.createOffer();
-    await peerRef.current.setLocalDescription(offer);
-    // now safe to send
-    socketRef.current.emit("offer", { roomId, offer });
+    // Wait a short tick to ensure tracks are stable
+    await new Promise(res => setTimeout(res, 50));
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    socketRef.current.emit("offer", { roomId, offer: pc.localDescription });
   } catch (err) {
     console.error("createAndSendOffer error:", err);
+  } finally {
+    isNegotiatingRef.current = false;
   }
 };
 
