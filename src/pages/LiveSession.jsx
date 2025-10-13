@@ -89,6 +89,16 @@ export default function LiveSession({ user }) {
     // --- Socket event listeners ---
     const handleScreenShareLayout = (active) => {
       setRemoteScreenSharing(active);
+      if (!active) {
+        // Always clear video and reset peer connection if screen sharing stops
+        if (screenShareVideoRef.current) {
+          screenShareVideoRef.current.srcObject = null;
+        }
+        if (peerRef.current) {
+          try { peerRef.current.close(); } catch (e) { }
+          peerRef.current = null;
+        }
+      }
     };
     const handleChatMessage = (msg) => {
       setMessages(prev => [...prev, { id: Date.now(), sender: msg.sender, text: msg.message, time: msg.time }]);
@@ -122,7 +132,6 @@ export default function LiveSession({ user }) {
       if (screenShareVideoRef.current) {
         screenShareVideoRef.current.srcObject = null;
       }
-      // Always close and recreate peer connection on remote stop
       if (peerRef.current) {
         try { peerRef.current.close(); } catch (e) { }
         peerRef.current = null;
