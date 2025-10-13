@@ -22,6 +22,7 @@ export default function LiveSession({ user }) {
   const [screenStream, setScreenStream] = useState(null);
   const [issueFile, setIssueFile] = useState(null);
   const [issue, setIssue] = useState(null);
+  const [isOfferer, setIsOfferer] = useState(false);
 
   const videoSectionRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -77,15 +78,19 @@ export default function LiveSession({ user }) {
 
     // Setup socket
     socketRef.current = io(SOCKET_URL);
-    socketRef.current.emit('joinRoom', roomId, name);
-
+    socketRef.current.emit('joinRoom', roomId, name, (role) => {
+      setIsOfferer(role === 'offerer');
+    });
     socketRef.current.on('chatMessage', (msg) => {
       setMessages(prev => [...prev, { id: Date.now(), sender: msg.sender, text: msg.message, time: msg.time }]);
     });
 
     // WebRTC signaling
     socketRef.current.on('offer', async (offer) => {
-      if (!peerRef.current) await startVideo(false);
+      if (!peerRef.current) initPeerConnection();
+      if (peerRef.current.signalingState !== 'stable') {
+        await peerRef.current.setLocalDescription({ type: 'rollback' });
+      }
       await peerRef.current.setRemoteDescription(offer);
       const answer = await peerRef.current.createAnswer();
       await peerRef.current.setLocalDescription(answer);
@@ -192,8 +197,9 @@ export default function LiveSession({ user }) {
   };
   // Helper: create and send offer (used when caller starts)
   const createAndSendOffer = async () => {
-    if (!peerRef.current) return;
+    if (!peerRef.current || !isOfferer) return;
     try {
+      if (peerRef.current.signalingState !== 'stable') return;
       const offer = await peerRef.current.createOffer();
       await peerRef.current.setLocalDescription(offer);
       socketRef.current.emit('offer', { roomId, offer });
@@ -226,7 +232,7 @@ export default function LiveSession({ user }) {
         trackAdded = true;
       }
       // Always create and send offer after adding a new track
-      if (trackAdded || isCaller) {
+      if (trackAdded) {
         await createAndSendOffer();
       }
     } catch (err) {
