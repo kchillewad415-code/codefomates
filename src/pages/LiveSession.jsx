@@ -29,6 +29,7 @@ export default function LiveSession({ user }) {
   const peerRef = useRef(null);
   const screenShareVideoRef = useRef(null);
   const isNegotiatingRef = useRef(false);
+  const iceQueueRef = useRef([]);
 
   const RTC_CONFIG = {
     iceServers: [
@@ -74,39 +75,45 @@ export default function LiveSession({ user }) {
     const handleChatMessage = (msg) => {
       setMessages(prev => [...prev, { id: Date.now(), sender: msg.sender, text: msg.message, time: msg.time }]);
     };
-    const handleOffer = async ({ offer }) => {
-      // Recreate peer to ensure m-line order consistency
-      if (peerRef.current) {
-        try { peerRef.current.close(); } catch (e) {}
-        peerRef.current = null;
-      }
-      initPeerConnection();
+const handleOffer = async ({ offer }) => {
+  if (!offer) return; // ignore empty offers
 
-      try {
-        if (peerRef.current.signalingState !== 'stable') {
-          await peerRef.current.setLocalDescription({ type: 'rollback' });
-        }
-      } catch (e) { /* best-effort rollback */ }
+  if (!peerRef.current) initPeerConnection();
 
-      try {
-        await peerRef.current.setRemoteDescription(new RTCSessionDescription(offer));
-        const answer = await peerRef.current.createAnswer();
-        await peerRef.current.setLocalDescription(answer);
-        socketRef.current.emit('answer', { roomId, answer: peerRef.current.localDescription });
-      } catch (err) {
-        console.error("handleOffer error:", err);
-      }
-    };
-    const handleAnswer = async ({ answer }) => {
-      try {
-        if (peerRef.current) await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
-      } catch (e) {
-        console.error("handleAnswer error:", e);
-      }
-    };
+  try {
+    await peerRef.current.setRemoteDescription(new RTCSessionDescription(offer));
+    await flushIceQueue();
+    const answer = await peerRef.current.createAnswer();
+    await peerRef.current.setLocalDescription(answer);
+    socketRef.current.emit("answer", { roomId, answer });
+  } catch (err) {
+    console.error("handleOffer error:", err);
+  }
+};
+const handleAnswer = async ({ answer }) => {
+  if (!answer) return;
+  try {
+    await peerRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+    await flushIceQueue();
+  } catch (err) {
+    console.error("handleAnswer error:", err);
+  }
+};
     const handleIceCandidate = async ({ candidate }) => {
-      try { if (peerRef.current && candidate) await peerRef.current.addIceCandidate(candidate); }
-      catch (e) { console.error("addIceCandidate error:", e); }
+        if (!candidate) return; // ignore null candidates
+  if (!peerRef.current) return; // no connection yet
+
+  try {
+    // Only add if remote description is set
+    if (peerRef.current.remoteDescription) {
+      await peerRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+    } else {
+      // queue ICE until remoteDescription is ready
+      iceQueueRef.current.push(candidate);
+    }
+  } catch (err) {
+    console.error("addIceCandidate error:", err);
+  }
     };
     const handleScreenShareStopped = () => {
       // Remote stopped: clear remote video and recreate peer for future sessions
@@ -203,22 +210,29 @@ export default function LiveSession({ user }) {
 
     return pc;
   };
-
-  // Helper: create/send offer when we manually want to start negotiation
-  const createAndSendOffer = async () => {
-    if (!peerRef.current) return;
-    if (peerRef.current.signalingState !== "stable") {
-      console.warn("Skipping createAndSendOffer: signalingState not stable");
-      return;
-    }
+const flushIceQueue = async () => {
+  if (!peerRef.current || !peerRef.current.remoteDescription) return;
+  while (iceQueueRef.current.length) {
+    const candidate = iceQueueRef.current.shift();
     try {
-      const offer = await peerRef.current.createOffer();
-      await peerRef.current.setLocalDescription(offer);
-      socketRef.current.emit('offer', { roomId, offer: peerRef.current.localDescription });
-    } catch (err) {
-      console.error("createAndSendOffer error:", err);
+      await peerRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (e) {
+      console.error("flushIceQueue failed:", e);
     }
-  };
+  }
+};
+  // Helper: create/send offer when we manually want to start negotiation
+const createAndSendOffer = async () => {
+  if (!peerRef.current) return;
+  try {
+    const offer = await peerRef.current.createOffer();
+    await peerRef.current.setLocalDescription(offer);
+    // now safe to send
+    socketRef.current.emit("offer", { roomId, offer });
+  } catch (err) {
+    console.error("createAndSendOffer error:", err);
+  }
+};
 
   // Share screen
   const shareScreen = async () => {
