@@ -129,6 +129,7 @@ function App() {
               <Link to="/about">About</Link>
               <Link to="/contact">Contact</Link>
               <Link to="/dashboard">Dashboard</Link>
+              {loggedUser.email === "admin" && <Link to="/krato/details">Admin Page</Link>}
               {loggedUser && loggedUser.isOnline ? (
                 <div className="flex items-center space-x-3">
                   {/* Stylish circular user icon */}
