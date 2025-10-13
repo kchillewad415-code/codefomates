@@ -21,6 +21,8 @@ export default function LiveSession({ user }) {
   const [issueFile, setIssueFile] = useState(null);
   const [issue, setIssue] = useState(null);
   const [isOfferer, setIsOfferer] = useState(false);
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const [mobileScreenShareError, setMobileScreenShareError] = useState("");
 
   // Removed videoSectionRef
   const messagesEndRef = useRef(null);
@@ -142,21 +144,18 @@ export default function LiveSession({ user }) {
     }
 
     // When remote track arrives, attach to correct remote video element
-    pc.ontrack = (event) => {
-      if (event.track.kind === 'video' || event.track.kind === 'audio') {
-        // Only handle screen share (video+audio)
-        if (screenShareVideoRef.current) {
-          const newStream = new MediaStream();
-          pc.getReceivers().forEach(r => {
-            if (r.track && (r.track.kind === 'video' || r.track.kind === 'audio') && r.track.readyState === 'live') {
-              newStream.addTrack(r.track);
-            }
-          });
-          screenShareVideoRef.current.srcObject = newStream;
-          screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(() => { });
-        }
+   pc.ontrack = (event) => {
+  if (screenShareVideoRef.current) {
+    const newStream = new MediaStream();
+    pc.getReceivers().forEach(r => {
+      if (r.track && (r.track.kind === 'video' || r.track.kind === 'audio') && r.track.readyState === 'live') {
+        newStream.addTrack(r.track);
       }
-    };
+    });
+    screenShareVideoRef.current.srcObject = newStream;
+    screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(() => { });
+  }
+};
 
     // Send ICE candidates through socket
     pc.onicecandidate = (event) => {
@@ -193,35 +192,43 @@ export default function LiveSession({ user }) {
   // Video/camera logic removed
 
   // Share screen (with audio)
-  const shareScreen = async () => {
-    try {
-      const sStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
-      setIsScreenSharing(true);
-      socketRef.current.emit('screenShareLayout', true);
-      setScreenStream(sStream);
-      if (screenShareVideoRef.current) {
-        screenShareVideoRef.current.srcObject = sStream;
-        screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(() => { });
-      }
-      if (!peerRef.current) {
-        initPeerConnection();
-      }
-      // Remove all existing senders before adding new tracks
-      const senders = peerRef.current.getSenders();
-      senders.forEach(sender => {
-        try { peerRef.current.removeTrack(sender); } catch (e) { }
-      });
-      sStream.getTracks().forEach(track => {
-        peerRef.current.addTrack(track, sStream);
-      });
-      await createAndSendOffer();
-      // When user stops sharing from browser UI:
-      sStream.getVideoTracks()[0].onended = () => stopScreenShare();
-    } catch (err) {
-      console.error("shareScreen error:", err);
-      setIsScreenSharing(false);
+const shareScreen = async () => {
+  if (isMobile) {
+    setMobileScreenShareError("Screen sharing is not supported on mobile browsers.");
+    return;
+  }
+  try {
+    const sStream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+    setIsScreenSharing(true);
+    setMobileScreenShareError("");
+    socketRef.current.emit('screenShareLayout', true);
+    setScreenStream(sStream);
+    if (screenShareVideoRef.current) {
+      screenShareVideoRef.current.srcObject = sStream;
+      screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(() => { });
     }
-  };
+    if (!peerRef.current) {
+      initPeerConnection();
+    }
+    // Remove all existing senders before adding new tracks
+    const senders = peerRef.current.getSenders();
+    senders.forEach(sender => {
+      try { peerRef.current.removeTrack(sender); } catch (e) { }
+    });
+    // Add all tracks (video+audio) to peer connection
+    sStream.getTracks().forEach(track => {
+      peerRef.current.addTrack(track, sStream);
+    });
+    // Always renegotiate after adding tracks
+    await createAndSendOffer();
+    // When user stops sharing from browser UI:
+    sStream.getVideoTracks()[0].onended = () => stopScreenShare();
+  } catch (err) {
+    setMobileScreenShareError("Screen sharing failed. Your browser may not support it or permission was denied.");
+    setIsScreenSharing(false);
+    console.error("shareScreen error:", err);
+  }
+};
 
   // Stop screen share
   const stopScreenShare = async () => {
@@ -363,8 +370,19 @@ export default function LiveSession({ user }) {
         </div>
         {/* Controls */}
         <div className="flex flex-wrap gap-2 mt-4">
-          {!isScreenSharing && <button onClick={shareScreen} className="bg-teal-700 text-white px-4 py-2 rounded-xl">Share Screen</button>}
-          {issueFile && (
+{!isScreenSharing && (
+  <button
+    onClick={shareScreen}
+    className={`bg-teal-700 text-white px-4 py-2 rounded-xl ${isMobile ? 'opacity-50 cursor-not-allowed' : ''}`}
+    disabled={isMobile}
+  >
+    Share Screen
+  </button>
+)}
+{mobileScreenShareError && (
+  <div className="text-red-600 text-sm w-full">{mobileScreenShareError}</div>
+)}          
+{issueFile && (
             <a href={`${API_URL}/uploads/${issueFile}`} target="_blank" rel="noopener noreferrer" className="bg-indigo-600 text-white px-4 py-2 rounded-xl hover:bg-indigo-700 flex items-center justify-center" style={{ textDecoration: 'none' }}>
               View Attached File
             </a>
