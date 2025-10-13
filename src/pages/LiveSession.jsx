@@ -392,7 +392,11 @@ const shareScreen = async () => {
         <div className={`w-full flex flex-row gap-2 bg-black rounded-xl overflow-hidden ${screenFullScreenStream ? "absolute w-full h-full top-0 left-0" : ""}`}>
           <div className="w-full h-full relative bg-gray-900 rounded-xl">
             {screenFullScreenStream && <button onClick={handleFullScreen} className='absolute top-2 left-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900 z-10'>back to normal screen</button>}
-            <video ref={screenShareVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+            {(isScreenSharing || remoteScreenSharing) ? (
+              <video ref={screenShareVideoRef} autoPlay playsInline className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-[200px] flex items-center justify-center text-gray-400 text-lg select-none">No screen is being shared</div>
+            )}
             {(isScreenSharing || remoteScreenSharing) && (
               <>
                 <button className="absolute top-2 right-2 bg-gray-800 bg-opacity-70 text-white px-3 py-1 rounded hover:bg-gray-900" onClick={stopScreenShare}>Stop Sharing</button>
