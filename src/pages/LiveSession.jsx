@@ -152,31 +152,28 @@ export default function LiveSession({ user }) {
         if (isScreen) {
           // Screen share
           if (screenShareVideoRef.current) {
-            let ms = screenShareVideoRef.current.srcObject;
-            if (!ms || !(ms instanceof MediaStream)) {
-              ms = new MediaStream();
-              screenShareVideoRef.current.srcObject = ms;
-            }
-            // Remove ended tracks
-            ms.getTracks().forEach(t => { if (t.readyState === 'ended') ms.removeTrack(t); });
-            if (!ms.getTracks().some(t => t.id === event.track.id)) {
-              ms.addTrack(event.track);
-            }
+            // Always create a new MediaStream with only active tracks
+            const newStream = new MediaStream();
+            // Add all active video tracks labeled as screen
+            pc.getReceivers().forEach(r => {
+              if (r.track && r.track.kind === 'video' && r.track.label.toLowerCase().includes('screen') && r.track.readyState === 'live') {
+                newStream.addTrack(r.track);
+              }
+            });
+            screenShareVideoRef.current.srcObject = newStream;
             screenShareVideoRef.current.onloadedmetadata = () => screenShareVideoRef.current.play().catch(() => { });
           }
         } else {
           // Camera
           if (remoteVideoRef.current) {
-            let ms = remoteVideoRef.current.srcObject;
-            if (!ms || !(ms instanceof MediaStream)) {
-              ms = new MediaStream();
-              remoteVideoRef.current.srcObject = ms;
-            }
-            // Remove ended tracks
-            ms.getTracks().forEach(t => { if (t.readyState === 'ended') ms.removeTrack(t); });
-            if (!ms.getTracks().some(t => t.id === event.track.id)) {
-              ms.addTrack(event.track);
-            }
+            // Always create a new MediaStream with only active tracks
+            const newStream = new MediaStream();
+            pc.getReceivers().forEach(r => {
+              if (r.track && r.track.kind === 'video' && (!r.track.label.toLowerCase().includes('screen')) && r.track.readyState === 'live') {
+                newStream.addTrack(r.track);
+              }
+            });
+            remoteVideoRef.current.srcObject = newStream;
             remoteVideoRef.current.onloadedmetadata = () => remoteVideoRef.current.play().catch(() => { });
           }
         }
