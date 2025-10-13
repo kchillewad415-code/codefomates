@@ -220,10 +220,13 @@ export default function LiveSession({ user }) {
       const videoTrack = stream.getVideoTracks()[0];
       const senders = peerRef.current.getSenders();
       const hasCamera = senders.some(s => s.track && s.track.kind === 'video' && !s.track.label.toLowerCase().includes('screen'));
+      let trackAdded = false;
       if (!hasCamera && videoTrack) {
         peerRef.current.addTrack(videoTrack, stream);
+        trackAdded = true;
       }
-      if (isCaller) {
+      // Always create and send offer after adding a new track
+      if (trackAdded || isCaller) {
         await createAndSendOffer();
       }
     } catch (err) {
@@ -266,10 +269,15 @@ export default function LiveSession({ user }) {
       const screenTrack = sStream.getVideoTracks()[0];
       const senders = peerRef.current.getSenders();
       const hasScreen = senders.some(s => s.track && s.track.kind === 'video' && s.track.label.toLowerCase().includes('screen'));
+      let screenTrackAdded = false;
       if (!hasScreen && screenTrack) {
         peerRef.current.addTrack(screenTrack, sStream);
+        screenTrackAdded = true;
       }
-      await createAndSendOffer();
+      // Always create and send offer after adding a new track
+      if (screenTrackAdded) {
+        await createAndSendOffer();
+      }
 
       // When user stops sharing from browser UI:
       sStream.getVideoTracks()[0].onended = () => stopScreenShare();
