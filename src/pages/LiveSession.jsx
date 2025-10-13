@@ -147,9 +147,7 @@ export default function LiveSession({ user }) {
 
     // When remote track arrives, attach to correct remote video element
     pc.ontrack = (event) => {
-      // Always ensure the track is added to the correct video element
       if (event.track.kind === 'video') {
-        // Try to distinguish camera vs screen by label, fallback to order if label is missing
         const isScreen = event.track.label && event.track.label.toLowerCase().includes('screen');
         if (isScreen) {
           // Screen share
@@ -159,6 +157,8 @@ export default function LiveSession({ user }) {
               ms = new MediaStream();
               screenShareVideoRef.current.srcObject = ms;
             }
+            // Remove ended tracks
+            ms.getTracks().forEach(t => { if (t.readyState === 'ended') ms.removeTrack(t); });
             if (!ms.getTracks().some(t => t.id === event.track.id)) {
               ms.addTrack(event.track);
             }
@@ -172,6 +172,8 @@ export default function LiveSession({ user }) {
               ms = new MediaStream();
               remoteVideoRef.current.srcObject = ms;
             }
+            // Remove ended tracks
+            ms.getTracks().forEach(t => { if (t.readyState === 'ended') ms.removeTrack(t); });
             if (!ms.getTracks().some(t => t.id === event.track.id)) {
               ms.addTrack(event.track);
             }
