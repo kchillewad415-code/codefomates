@@ -253,6 +253,10 @@ const shareScreen = async () => {
   // Stop screen share
   const stopScreenShare = async () => {
     setIsScreenSharing(false);
+    if (peerRef.current) {
+      try { peerRef.current.close(); } catch (e) { }
+      peerRef.current = null;
+    }
     socketRef.current.emit('screenShareLayout', false);
     socketRef.current.emit('screenShareStopped', { roomId }); // Notify remote to clear video
     if (screenShareVideoRef.current?.srcObject) {
@@ -262,11 +266,6 @@ const shareScreen = async () => {
     if (screenStream) {
       screenStream.getTracks().forEach(track => track.stop());
       setScreenStream(null);
-    }
-    // Fully close and nullify the peer connection
-    if (peerRef.current) {
-      try { peerRef.current.close(); } catch (e) { }
-      peerRef.current = null;
     }
     setScreenFullScreenStream(false);
   };
