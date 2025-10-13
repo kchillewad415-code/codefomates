@@ -131,6 +131,7 @@ export default function LiveSession({ user }) {
 
   // Initialize peer connection
   const initPeerConnection = (stream) => {
+
     // reuse existing pc if any (close it)
     if (peerRef.current) {
       try { peerRef.current.close(); } catch (e) { }
@@ -140,9 +141,17 @@ export default function LiveSession({ user }) {
     const pc = new RTCPeerConnection(RTC_CONFIG);
     peerRef.current = pc;
 
-    // Add existing tracks (camera or screen) to connection
+    // Always add a video transceiver for camera (sendrecv)
+    pc.videoTransceiver = pc.addTransceiver('video', { direction: 'sendrecv' });
+    // Optionally, add an audio transceiver if you want audio resume too
+    // pc.audioTransceiver = pc.addTransceiver('audio', { direction: 'sendrecv' });
+
+    // If we have a stream, set the video track
     if (stream) {
-      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        pc.videoTransceiver.sender.replaceTrack(videoTrack);
+      }
     }
 
     // When remote track arrives, attach to correct remote video element
@@ -223,21 +232,13 @@ export default function LiveSession({ user }) {
         localVideoRef.current.onloadedmetadata = () => localVideoRef.current.play().catch(() => { });
       }
 
-      // If we have a peer already, add camera track if not present; otherwise create pc
+      // If we have a peer already, use its video transceiver; otherwise create pc
       if (!peerRef.current) {
-        initPeerConnection(); // no stream, just create pc
+        initPeerConnection();
       }
-      // Add camera video track if not already present
       const videoTrack = stream.getVideoTracks()[0];
-      const senders = peerRef.current.getSenders();
-      const hasCamera = senders.some(s => s.track && s.track.kind === 'video' && !s.track.label.toLowerCase().includes('screen'));
-      let trackAdded = false;
-      if (!hasCamera && videoTrack) {
-        peerRef.current.addTrack(videoTrack, stream);
-        trackAdded = true;
-      }
-      // Always create and send offer after adding a new track
-      if (trackAdded) {
+      if (peerRef.current && peerRef.current.videoTransceiver && videoTrack) {
+        await peerRef.current.videoTransceiver.sender.replaceTrack(videoTrack);
         await createAndSendOffer();
       }
     } catch (err) {
@@ -248,26 +249,18 @@ export default function LiveSession({ user }) {
   // Stop camera
   const endVideo = () => {
     setIsVideoStarted(false);
-    // Stop and remove local video track from peer connection, but do not close the connection
+    // Stop local video and set sender's track to null (keeps transceiver alive)
     if (localVideoRef.current?.srcObject) {
       localVideoRef.current.srcObject.getTracks().forEach(track => track.stop());
       localVideoRef.current.srcObject = null;
     }
     if (cameraStream) {
-      // Remove camera video track from peer connection
-      const senders = peerRef.current?.getSenders() || [];
-      cameraStream.getTracks().forEach(track => {
-        const sender = senders.find(s => s.track && s.track.id === track.id);
-        if (sender) {
-          try { peerRef.current.removeTrack(sender); } catch (e) { }
-        }
-        track.stop();
-      });
+      cameraStream.getTracks().forEach(track => track.stop());
       setCameraStream(null);
-      // Renegotiate after removing track
-      if (peerRef.current) {
-        createAndSendOffer();
-      }
+    }
+    if (peerRef.current && peerRef.current.videoTransceiver) {
+      peerRef.current.videoTransceiver.sender.replaceTrack(null);
+      createAndSendOffer();
     }
   };
 
