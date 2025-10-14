@@ -74,7 +74,7 @@ const [displayItems, setDisplayItems] = useState([]);
                         </p>
                     </div>
                     <div className="mt-4 bg-teal-700 text-white px-4 py-2 rounded-xl hover:bg-teal-800">
-                        <Link to={`dashboard/livesession/${issue._id}`}>session</Link>
+                        <Link to={`dashboard/livesession/${issue._id}`} aria-label={`Go to the session page of ${issue.title}`} title={issue.title}>session</Link>
                     </div>
                 </div>
             ))}

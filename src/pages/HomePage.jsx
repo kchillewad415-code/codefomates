@@ -74,7 +74,7 @@ export default function HomePage({ onlineUsers, animate }) {
                 Log your coding issue, and we’ll connect you to a real developer who’s ready to help.
               </p>
               <div className="bg-blue-600 text-white px-6 py-2 rounded-xl hover:bg-blue-700 transition">
-                <Link to="/issue">I Need Help</Link>
+                <Link to="/issue" aria-label="Need Help" title='need help'>I Need Help</Link>
               </div>
             </motion.div>
 
@@ -90,7 +90,7 @@ export default function HomePage({ onlineUsers, animate }) {
                 Join as a problem solver and pick issues you can solve in your own time. No pressure.
               </p>
               <div className="bg-teal-700 text-white px-6 py-2 rounded-xl hover:bg-teal-800 transition">
-                <Link to="/dashboard">I Want to Help</Link>
+                <Link to="/dashboard" aria-label="Want to Help" title='want to help'>I Want to Help</Link>
               </div>
             </motion.div>
           </div>
@@ -105,7 +105,7 @@ export default function HomePage({ onlineUsers, animate }) {
               <div className='mb-6 flex flex-row justify-between'>
                 <h2 className='text-3xl font-bold text-blue-600 relative'>Issues</h2>
                           <div className="text-blue-600 rounded-xl hover:text-blue-800 transition">
-                <Link to="/dashboard">
+                <Link to="/dashboard" aria-label="Go to DashBoard" title='Go to DashBoard'>
                 <svg 
                 xmlns="http://www.w3.org/2000/svg" 
                 viewBox="0 0 640 640" 
