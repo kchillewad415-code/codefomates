@@ -4,6 +4,7 @@ import API from "../api";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react";
 
 
 export default function AdminPage({ user }) {
@@ -233,15 +234,24 @@ function IssueList({ issues, onDelete }) {
 function UsersList({ users, onDelete }) {
     const [selectedItems, setSelectedItems] = useState([]);
     const [filteredUsers, setFilteredUsers] = useState(users.filter((item) => item.username.toLowerCase() !== "admin"));
+      const [filter, setFilter] = useState("");
+    const onlineUsers = users.filter((item) => item.username !== "admin" && item.isOnline===true).length;
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     const [activeOneWeekAgo, setActiveOneWeekAgo] = useState(filteredUsers.filter((item) => new Date(item.updatedAt) < oneWeekAgo));
 
 
-const displayItems = React.useMemo(() => {
+
+    const displayOnlineUsers = React.useMemo(() => {
     const admin = users.filter((item) => item.username === "admin");
-  const selected = users.filter((item) => selectedItems.includes(item._id));
-  const unselected = users.filter((item) =>item.username.toLowerCase() !== "admin" &&  !selectedItems.includes(item._id));
+  const Online = users.filter((item) => item.username.toLowerCase() !== "admin" && item.isOnline === true);
+  const offline = users.filter((item) =>item.username.toLowerCase() !== "admin" &&  item.isOnline === false);
+  return [...admin,...Online, ...offline];
+}, [users]);
+const displayItems = React.useMemo(() => {
+    const admin = displayOnlineUsers.filter((item) => item.username === "admin");
+  const selected = displayOnlineUsers.filter((item) => selectedItems.includes(item._id));
+  const unselected = displayOnlineUsers.filter((item) =>item.username.toLowerCase() !== "admin" &&  !selectedItems.includes(item._id));
   return [...admin,...selected, ...unselected];
 }, [users, selectedItems]);
     // Toggle single checkbox
@@ -305,11 +315,14 @@ const displayItems = React.useMemo(() => {
             alert(error.response?.data?.message || "Error deleting item");
         }
     };
-
+    let usernameFIlters = displayItems;
+  if (filter) {
+    usernameFIlters = usernameFIlters.filter(i => i.username && i.username.toLowerCase().includes(filter.toLowerCase()));
+  }
     if (!users || users.length === 0) return <p className="text-gray-500 text-center">No users present till</p>;
     return (
         <div className="mt-6">
-            <h3 className="text-xl font-bold text-blue-600 mb-4">Users</h3>
+            <h3 className="text-xl font-bold text-blue-600 mb-4">Users <span className='text-orange-600'>({onlineUsers} users currently Online)</span></h3>
 
             <div className="flex items-center mb-2 flex flex-col md:flex-row w-full">
                 <div className='w-full text-left md:w-auto'>
@@ -343,8 +356,18 @@ const displayItems = React.useMemo(() => {
                     Delete Selected
                 </button>
             </div>
+            <div className='relative mt-3'>
+            <input
+              type="text"
+              placeholder="Filter by Title"
+              value={filter}
+              onChange={(e) => { setFilter(e.target.value); }}
+              className="w-full px-4 py-2 border rounded-xl"
+            />
+            {filter && <button className='absolute top-1/2 right-0 transform -translate-x-1/2 -translate-y-1/2' onClick={()=>setFilter("")}><X size={24} color="black" /></button>}
+            </div>
             <AnimatePresence>
-            {displayItems.map((user) => (
+            {usernameFIlters.length >0 ? usernameFIlters.map((user) => (
                 <motion.div
                     key={user._id}
                     layout
@@ -387,7 +410,7 @@ const displayItems = React.useMemo(() => {
                             <button onClick={() => deleteUser(user._id)} className="bg-red-600 text-white px-4 py-2 rounded-xl hover:bg-red-700">delete</button>
                         </div>}
                 </motion.div>
-            ))}
+            )) : <div className={`border-b rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between my-5 bg-white`}>No users present with the search keyword {filter}</div>}
             </AnimatePresence>
         </div>
     )
