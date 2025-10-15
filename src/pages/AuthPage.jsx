@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import API from "../api";
 import { useNavigate } from "react-router-dom";
+import PrivacyPolicy from "./PrivacyPolicy";
 
 export default function AuthPage({ onLoginUser }) {
   const [isSignup, setIsSignup] = useState(false);
@@ -16,6 +17,8 @@ export default function AuthPage({ onLoginUser }) {
   const [forgotStatus, setForgotStatus] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [duplicateEmail, setDuplicateEmail] = useState(false);
+  const [privacyChecked, setPrivacyChecked] = useState(false);
+  const [privacyMsg, setPrivacyMsg]=useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -121,7 +124,13 @@ export default function AuthPage({ onLoginUser }) {
         return;
       }
       setPasswordError("");
+      if(!privacyChecked){
+        setPrivacyMsg(true);
+        return;
+      }
+      setPrivacyMsg(false);
       newUser(form);
+
     } else {
       setErrormsg(false);
       setWrongpassword(false);
@@ -214,6 +223,15 @@ export default function AuthPage({ onLoginUser }) {
                         <li className="text-red-600">Include uppercase, lowercase, number, and special character</li>
                       </ul>
                     )}
+                    {isSignup && <div className="flex flex-row items-center w-full"><input
+                        type="checkbox"
+                        checked={privacyChecked}
+                        onChange={()=>setPrivacyChecked(!privacyChecked)}
+                        className="mr-2"
+                    />
+                    <span className="text-xs flex flex-row">Privacy Policy Accepted <a className="ml-1 text-blue-600" target="_blank" href="https://www.freeprivacypolicy.com/live/aab18550-5c2c-4da3-9273-7a35837bd8b8">privacy policy</a>.</span></div>
+                    }
+                    {privacyMsg && <span className="text-red-600">Please click on Privacy Policy box to proceed the signup.</span>}
                     <button
                       type="submit"
                       className="w-full bg-blue-600 text-white py-2 rounded-xl hover:bg-blue-700"
