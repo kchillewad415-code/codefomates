@@ -218,9 +218,9 @@ export default function AuthPage({ onLoginUser }) {
                       <div className="text-xs text-red-600 mt-1">{passwordError}</div>
                     )}
                     {isSignup && (
-                      <ul className="text-xs text-gray-500 mt-1 list-disc pl-5">
-                        <li className="text-red-600">Password must be at least 8 characters</li>
-                        <li className="text-red-600">Include uppercase, lowercase, number, and special character</li>
+                      <ul className="text-xs bg-blue-100 p-2 rounded-xl text-gray-500 mt-1 list-disc pl-5">
+                        <li className="text-blue-800">Password must be at least 8 characters</li>
+                        <li className="text-blue-800">Include uppercase, lowercase, number, and special character</li>
                       </ul>
                     )}
                     {isSignup && <div className="flex flex-row items-center w-full"><input
